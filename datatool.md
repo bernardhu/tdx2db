@@ -61,6 +61,12 @@ docker run -it -v ./datatool:/datatool -w /datatool alpine:3.19 ./datatool tick 
 docker run -it -v ./datatool:/datatool -w /datatool alpine:3.19 ./datatool min create 20251128
 
 
+## 股票例外日更新
+./tdx2db workday --wdyear 2024 --wdpath datatool/vipdoc/exceptday --dbpath tdx.db
+./tdx2db workday --wdyear 2025 --wdpath datatool/vipdoc/exceptday --dbpath tdx.db
+
+./tdx2db workday --cwpath datatool/vipdoc/tdxfin --dbpath tdx.db
+
 股票数据包
 mkdir -p ./datatool/vipdoc/tdxgp
 cd ./datatool/vipdoc/tdxgp && https://data.tdx.com.cn/vipdoc/tdxgp.zip && unzip tdxgp.zip && rm -rf tdxgp.zip

@@ -50,6 +50,7 @@ func DownloadFile(url string, targetPath string) (int, error) {
 
 	// Step 2: 检查是否能获取 Content-Length
 	size, err := strconv.Atoi(res.Header.Get("Content-Length"))
+	fmt.Printf("size:%d\n", size)
 	if err != nil || size <= 0 {
 		return d.singleThreadDownload()
 	}
