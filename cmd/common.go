@@ -13,6 +13,7 @@ var Today = time.Now().Truncate(24 * time.Hour)
 
 var DataDir, _ = utils.GetCacheDir()
 var VipdocDir = filepath.Join(DataDir, "vipdoc")
+var VipdocDir2 = "/Users/huguanrui/go/src/github.com/tdx/tdx2db/datatool/vipdoc"
 var StockCSV = filepath.Join(DataDir, "stock.csv")
 var OneMinLineCSV = filepath.Join(DataDir, "1min.csv")
 var FiveMinLineCSV = filepath.Join(DataDir, "5min.csv")

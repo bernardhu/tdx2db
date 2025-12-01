@@ -76,7 +76,7 @@ func UpdateStocksDaily(db *sql.DB, latestDate time.Time) error {
 	}
 	if len(validDates) > 0 {
 		fmt.Printf("🐢 开始转换日线数据\n")
-		_, err := tdx.ConvertFiles2Csv(VipdocDir, ValidPrefixes, StockCSV, ".day")
+		_, err := tdx.ConvertFiles2Csv(VipdocDir2, ValidPrefixes, StockCSV, ".day")
 		if err != nil {
 			return fmt.Errorf("failed to convert day files to CSV: %w", err)
 		}
@@ -105,7 +105,7 @@ func UpdateStocksMinLine(db *sql.DB, latestDate time.Time, minline string) error
 		for _, p := range parts {
 			switch p {
 			case "1":
-				_, err := tdx.ConvertFiles2Csv(VipdocDir, ValidPrefixes, OneMinLineCSV, ".01")
+				_, err := tdx.ConvertFiles2Csv(VipdocDir2, ValidPrefixes, OneMinLineCSV, ".01")
 				if err != nil {
 					return fmt.Errorf("failed to convert .01 files to CSV: %w", err)
 				}
@@ -115,7 +115,7 @@ func UpdateStocksMinLine(db *sql.DB, latestDate time.Time, minline string) error
 				fmt.Println("📊 1分钟数据导入成功")
 
 			case "5":
-				_, err := tdx.ConvertFiles2Csv(VipdocDir, ValidPrefixes, FiveMinLineCSV, ".5")
+				_, err := tdx.ConvertFiles2Csv(VipdocDir2, ValidPrefixes, FiveMinLineCSV, ".5")
 				if err != nil {
 					return fmt.Errorf("failed to convert .5 files to CSV: %w", err)
 				}
@@ -297,83 +297,90 @@ func prepareTdxData(latestDate time.Time, dataType string) ([]time.Time, error) 
 	if len(dates) == 0 {
 		return nil, nil
 	}
+	return dates, nil
+	/*
+	   var targetPath, urlTemplate, fileSuffix, dataTypeCN string
 
-	var targetPath, urlTemplate, fileSuffix, dataTypeCN string
+	   switch dataType {
+	   case "day":
 
-	switch dataType {
-	case "day":
-		targetPath = filepath.Join(VipdocDir, "refmhq")
-		urlTemplate = "https://www.tdx.com.cn/products/data/data/g4day/%s.zip"
-		fileSuffix = "day"
-		dataTypeCN = "日线"
-	case "tic":
-		targetPath = filepath.Join(VipdocDir, "newdatetick")
-		urlTemplate = "https://www.tdx.com.cn/products/data/data/g4tic/%s.zip"
-		fileSuffix = "tic"
-		dataTypeCN = "分时"
-	default:
-		return nil, fmt.Errorf("unknown data type: %s", dataType)
-	}
+	   	targetPath = filepath.Join(VipdocDir, "refmhq")
+	   	urlTemplate = "https://www.tdx.com.cn/products/data/data/g4day/%s.zip"
+	   	fileSuffix = "day"
+	   	dataTypeCN = "日线"
 
-	if err := os.MkdirAll(targetPath, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create target directory: %w", err)
-	}
+	   case "tic":
 
-	fmt.Printf("🐢 开始下载%s数据\n", dataTypeCN)
+	   	targetPath = filepath.Join(VipdocDir, "newdatetick")
+	   	urlTemplate = "https://www.tdx.com.cn/products/data/data/g4tic/%s.zip"
+	   	fileSuffix = "tic"
+	   	dataTypeCN = "分时"
 
-	validDates := make([]time.Time, 0, len(dates))
+	   default:
 
-	for _, date := range dates {
-		dateStr := date.Format("20060102")
-		url := fmt.Sprintf(urlTemplate, dateStr)
-		fileName := fmt.Sprintf("%s%s.zip", dateStr, fileSuffix)
-		filePath := filepath.Join(targetPath, fileName)
+	   		return nil, fmt.Errorf("unknown data type: %s", dataType)
+	   	}
 
-		status, err := utils.DownloadFile(url, filePath)
-		switch status {
-		case 200:
+	   	if err := os.MkdirAll(targetPath, 0755); err != nil {
+	   		return nil, fmt.Errorf("failed to create target directory: %w", err)
+	   	}
 
-			fmt.Printf("✅ 已下载 %s 的数据\n", dateStr)
+	   fmt.Printf("🐢 开始下载%s数据\n", dataTypeCN)
 
-			if err := utils.UnzipFile(filePath, targetPath); err != nil {
-				fmt.Printf("⚠️ 解压文件 %s 失败: %v\n", filePath, err)
-				continue
-			}
+	   validDates := make([]time.Time, 0, len(dates))
 
-			validDates = append(validDates, date)
-		case 404:
-			fmt.Printf("🟡 %s 非交易日或数据尚未更新\n", dateStr)
-			continue
-		default:
-			if err != nil {
-				return nil, nil
-			}
-		}
+	   	for _, date := range dates {
+	   		dateStr := date.Format("20060102")
+	   		url := fmt.Sprintf(urlTemplate, dateStr)
+	   		fileName := fmt.Sprintf("%s%s.zip", dateStr, fileSuffix)
+	   		filePath := filepath.Join(targetPath, fileName)
 
-	}
+	   		status, err := utils.DownloadFile(url, filePath)
+	   		switch status {
+	   		case 200:
 
-	if len(validDates) > 0 {
-		endDate := validDates[len(validDates)-1]
-		switch dataType {
-		case "day":
-			if err := tdx.DatatoolCreate(DataDir, "day", endDate); err != nil {
-				return nil, fmt.Errorf("failed to run DatatoolDayCreate: %w", err)
-			}
+	   			fmt.Printf("✅ 已下载 %s 的数据\n", dateStr)
 
-		case "tic":
-			endDate := validDates[len(validDates)-1]
-			fmt.Printf("🐢 开始转档分笔数据\n")
-			if err := tdx.DatatoolCreate(DataDir, "tick", endDate); err != nil {
-				return nil, fmt.Errorf("failed to run DatatoolTickCreate: %w", err)
-			}
-			fmt.Printf("🐢 开始转换分钟数据\n")
-			if err := tdx.DatatoolCreate(DataDir, "min", endDate); err != nil {
-				return nil, fmt.Errorf("failed to run DatatoolMinCreate: %w", err)
-			}
-		}
-	}
+	   			if err := utils.UnzipFile(filePath, targetPath); err != nil {
+	   				fmt.Printf("⚠️ 解压文件 %s 失败: %v\n", filePath, err)
+	   				continue
+	   			}
 
-	return validDates, nil
+	   			validDates = append(validDates, date)
+	   		case 404:
+	   			fmt.Printf("🟡 %s 非交易日或数据尚未更新\n", dateStr)
+	   			continue
+	   		default:
+	   			if err != nil {
+	   				return nil, nil
+	   			}
+	   		}
+
+	   }
+
+	   	if len(validDates) > 0 {
+	   		endDate := validDates[len(validDates)-1]
+	   		switch dataType {
+	   		case "day":
+	   			if err := tdx.DatatoolCreate(DataDir, "day", endDate); err != nil {
+	   				return nil, fmt.Errorf("failed to run DatatoolDayCreate: %w", err)
+	   			}
+
+	   		case "tic":
+	   			endDate := validDates[len(validDates)-1]
+	   			fmt.Printf("🐢 开始转档分笔数据\n")
+	   			if err := tdx.DatatoolCreate(DataDir, "tick", endDate); err != nil {
+	   				return nil, fmt.Errorf("failed to run DatatoolTickCreate: %w", err)
+	   			}
+	   			fmt.Printf("🐢 开始转换分钟数据\n")
+	   			if err := tdx.DatatoolCreate(DataDir, "min", endDate); err != nil {
+	   				return nil, fmt.Errorf("failed to run DatatoolMinCreate: %w", err)
+	   			}
+	   		}
+	   	}
+
+	   return validDates, nil
+	*/
 }
 
 func getGbbqFile(cacheDir string) (string, error) {
