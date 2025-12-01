@@ -25,7 +25,7 @@ func main() {
 		SilenceErrors: true,
 	}
 
-	var dbPath, dayFileDir, minline string
+	var dbPath, dayFileDir, minline, workdayPath, workdayYear string
 	var (
 		m1FileDir   string
 		m5FileDir   string
@@ -57,6 +57,17 @@ func main() {
 				}
 			}
 			if err := cmd.Cron(dbPath, minline); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+
+	var workdayCmd = &cobra.Command{
+		Use:   "workday",
+		Short: "Cron for update workday",
+		RunE: func(c *cobra.Command, args []string) error {
+			if err := cmd.Workday(dbPath, workdayPath, workdayYear); err != nil {
 				return err
 			}
 			return nil
@@ -136,6 +147,13 @@ func main() {
 	cronCmd.MarkFlagRequired("dbpath")
 	cronCmd.Flags().StringVar(&minline, "minline", "", minLineInfo)
 
+	workdayCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
+	workdayCmd.Flags().StringVar(&workdayPath, "wdpath", "", "通达信日期例外文件路径")
+	workdayCmd.Flags().StringVar(&workdayYear, "wdyear", "", "需要更新的工作日年")
+	workdayCmd.MarkFlagRequired("dbpath")
+	workdayCmd.MarkFlagRequired("wdpath")
+	workdayCmd.MarkFlagRequired("wdyear")
+
 	convertCmd.Flags().StringVar(&dayFileDir, "dayfiledir", "", dayFileInfo)
 	convertCmd.Flags().StringVar(&m1FileDir, "m1filedir", "", "通达信 1 分钟 .01 文件目录")
 	convertCmd.Flags().StringVar(&m5FileDir, "m5filedir", "", "通达信 5 分钟 .5 文件目录")
@@ -148,6 +166,7 @@ func main() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(cronCmd)
 	rootCmd.AddCommand(convertCmd)
+	rootCmd.AddCommand(workdayCmd)
 
 	cobra.OnFinalize(func() {
 		os.RemoveAll(cmd.DataDir)
