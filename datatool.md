@@ -75,10 +75,10 @@ docker run -it -v /Users/huguanrui/go/src/github.com/tdx/tdx2db/datatool:/datato
 
 股票数据包
 mkdir -p ./datatool/vipdoc/tdxgp
-cd ./datatool/vipdoc/tdxgp && https://data.tdx.com.cn/vipdoc/tdxgp.zip && unzip tdxgp.zip && rm -rf tdxgp.zip
+cd ./datatool/vipdoc/tdxgp && wget https://data.tdx.com.cn/vipdoc/tdxgp.zip && unzip tdxgp.zip && rm -rf tdxgp.zip
 
 
 财务数据包
 mkdir -p ./datatool/vipdoc/tdxfin
-cd ./datatool/vipdoc/tdxfin && https://data.tdx.com.cn/vipdoc/tdxfin.zip && unzip tdxfin.zip && rm -rf tdxfin.zip
+cd ./datatool/vipdoc/tdxfin && wget https://data.tdx.com.cn/vipdoc/tdxfin.zip && unzip tdxfin.zip && rm -rf tdxfin.zip
 

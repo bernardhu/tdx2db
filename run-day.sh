@@ -29,11 +29,11 @@ cd ../../..
 docker run -it -v $CUR/datatool:/datatool -w /datatool alpine:3.19 ./datatool day create $Year$i
 rm -rf ./datatool/vipdoc/refmhq/*
 
-mkdir -p ./datatool/vipdoc/newdatetick
-cd ./datatool/vipdoc/newdatetick && wget https://www.tdx.com.cn/products/data/data/g4tic/$Year$i.zip && unzip $Year$i.zip && rm -rf $Year$i.zip
-cd ../../..
-docker run -it -v $CUR/datatool:/datatool -w /datatool alpine:3.19 ./datatool tick create $Year$i
-docker run -it -v $CUR/datatool:/datatool -w /datatool alpine:3.19 ./datatool min create $Year$i
+#mkdir -p ./datatool/vipdoc/newdatetick
+#cd ./datatool/vipdoc/newdatetick && wget https://www.tdx.com.cn/products/data/data/g4tic/$Year$i.zip && unzip $Year$i.zip && rm -rf $Year$i.zip
+#cd ../../..
+#docker run -it -v $CUR/datatool:/datatool -w /datatool alpine:3.19 ./datatool tick create $Year$i
+#docker run -it -v $CUR/datatool:/datatool -w /datatool alpine:3.19 ./datatool min create $Year$i
 
 
 else
