@@ -12,7 +12,10 @@ type cwRefDesc struct {
 	desc string
 }
 
+// FINVALUE()，专业财务数据(系列)
+// FINONE(),专业财务数据(指定日期)
 var cwbase = []cwColumnDesc{
+	//-------------每股指标-----------------------------
 	{idx: 0, name: "f0", desc: "基本每股收益", scale: 1.0},
 	{idx: 1, name: "f1", desc: "扣除非经常性损益每股收益", scale: 1.0},
 	{idx: 2, name: "f2", desc: "每股未分配利润", scale: 1.0},
@@ -20,6 +23,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 4, name: "f4", desc: "每股资本公积金", scale: 1.0},
 	{idx: 5, name: "f5", desc: "净资产收益率", scale: 1.0},
 	{idx: 6, name: "f6", desc: "每股经营现金流量", scale: 1.0},
+	//-------------资产负债表----------------------------
 	{idx: 7, name: "f7", desc: "货币资金", scale: 1.0},
 	{idx: 8, name: "f8", desc: "交易性金融资产(万元)", scale: 1.0},
 	{idx: 9, name: "f9", desc: "应收票据", scale: 1.0},
@@ -39,7 +43,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 23, name: "f23", desc: "长期应收款", scale: 1.0},
 	{idx: 24, name: "f24", desc: "长期股权投资", scale: 1.0},
 	{idx: 25, name: "f25", desc: "投资性房地产", scale: 1.0},
-	{idx: 26, name: "f26", desc: "固定资产净额", scale: 1.0},
+	{idx: 26, name: "f26", desc: "固定资产", scale: 1.0},
 	{idx: 27, name: "f27", desc: "在建工程", scale: 1.0},
 	{idx: 28, name: "f28", desc: "工程物资", scale: 1.0},
 	{idx: 29, name: "f29", desc: "固定资产清理", scale: 1.0},
@@ -86,6 +90,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 70, name: "f70", desc: "非正常经营项目收益调整", scale: 1.0},
 	{idx: 71, name: "f71", desc: "所有者权益（或股东权益）合计", scale: 1.0},
 	{idx: 72, name: "f72", desc: "负债和所有者（或股东权益）合计", scale: 1.0},
+	//-------------利润表-----------------------------
 	{idx: 73, name: "f73", desc: "其中：营业收入", scale: 1.0},
 	{idx: 74, name: "f74", desc: "其中：营业成本", scale: 1.0},
 	{idx: 75, name: "f75", desc: "营业税金及附加", scale: 1.0},
@@ -110,6 +115,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 94, name: "f94", desc: "五、净利润", scale: 1.0},
 	{idx: 95, name: "f95", desc: "归属于母公司股东的净利润", scale: 1.0},
 	{idx: 96, name: "f96", desc: "少数股东损益", scale: 1.0},
+	//------------------现金流量表---------------------
 	{idx: 97, name: "f97", desc: "销售商品、提供劳务收到的现金", scale: 1.0},
 	{idx: 98, name: "f98", desc: "收到的税费返还", scale: 1.0},
 	{idx: 99, name: "f99", desc: "收到其他与经营活动有关的现金", scale: 1.0},
@@ -131,7 +137,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 115, name: "f115", desc: "取得子公司及其他营业单位支付的现金净额", scale: 1.0},
 	{idx: 116, name: "f116", desc: "支付其他与投资活动有关的现金", scale: 1.0},
 	{idx: 117, name: "f117", desc: "投资活动现金流出小计", scale: 1.0},
-	{idx: 118, name: "f118", desc: "投资活动产生的现金流量净额2", scale: 1.0},
+	{idx: 118, name: "f118", desc: "投资活动产生的现金流量净额", scale: 1.0},
 	{idx: 119, name: "f119", desc: "吸收投资收到的现金", scale: 1.0},
 	{idx: 120, name: "f120", desc: "取得借款收到的现金", scale: 1.0},
 	{idx: 121, name: "f121", desc: "收到其他与筹资活动有关的现金", scale: 1.0},
@@ -171,6 +177,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 155, name: "f155", desc: "加：现金等价物的期末余额", scale: 1.0},
 	{idx: 156, name: "f156", desc: "减：现金等价物的期初余额", scale: 1.0},
 	{idx: 157, name: "f157", desc: "现金及现金等价物净增加额", scale: 1.0},
+	//---------------------偿债能力分析------------------------
 	{idx: 158, name: "f158", desc: "流动比率(非金融类指标)", scale: 1.0},
 	{idx: 159, name: "f159", desc: "速动比率(非金融类指标)", scale: 1.0},
 	{idx: 160, name: "f160", desc: "现金比率(%)(非金融类指标)", scale: 1.0},
@@ -184,6 +191,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 168, name: "f168", desc: "有形资产/负债合计(%)", scale: 1.0},
 	{idx: 169, name: "f169", desc: "经营活动产生的现金流量净额/负债合计(%)(非金融类指标)", scale: 1.0},
 	{idx: 170, name: "f170", desc: "EBITDA/负债合计(%)(非金融类指标)", scale: 1.0},
+	//---------------------经营效率分析------------------------
 	{idx: 171, name: "f171", desc: "应收帐款周转率(非金融类指标)", scale: 1.0},
 	{idx: 172, name: "f172", desc: "存货周转率(非金融类指标)", scale: 1.0},
 	{idx: 173, name: "f173", desc: "运营资金周转率(非金融类指标)", scale: 1.0},
@@ -195,6 +203,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 179, name: "f179", desc: "流动资产周转天数(非金融类指标)", scale: 1.0},
 	{idx: 180, name: "f180", desc: "总资产周转天数(非金融类指标)", scale: 1.0},
 	{idx: 181, name: "f181", desc: "股东权益周转率(非金融类指标)", scale: 1.0},
+	//---------------------发展能力分析------------------------
 	{idx: 182, name: "f182", desc: "营业收入增长率(%)", scale: 1.0},
 	{idx: 183, name: "f183", desc: "净利润增长率(%)", scale: 1.0},
 	{idx: 184, name: "f184", desc: "净资产增长率(%)", scale: 1.0},
@@ -205,6 +214,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 189, name: "f189", desc: "扣非每股收益同比(%)", scale: 1.0},
 	{idx: 190, name: "f190", desc: "扣非净利润同比(%)", scale: 1.0},
 	{idx: 191, name: "f191", desc: "暂无", scale: 1.0},
+	//---------------------获利能力分析------------------------
 	{idx: 192, name: "f192", desc: "成本费用利润率(%)", scale: 1.0},
 	{idx: 193, name: "f193", desc: "营业利润率(非金融类指标)", scale: 1.0},
 	{idx: 194, name: "f194", desc: "营业税金率(非金融类指标)", scale: 1.0},
@@ -212,7 +222,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 196, name: "f196", desc: "净资产收益率", scale: 1.0},
 	{idx: 197, name: "f197", desc: "投资收益率", scale: 1.0},
 	{idx: 198, name: "f198", desc: "销售净利率(%)", scale: 1.0},
-	{idx: 199, name: "f199", desc: "总资产报酬率", scale: 1.0},
+	{idx: 199, name: "f199", desc: "总资产净利率", scale: 1.0},
 	{idx: 200, name: "f200", desc: "净利润率(非金融类指标)", scale: 1.0},
 	{idx: 201, name: "f201", desc: "销售毛利率(%)(非金融类指标)", scale: 1.0},
 	{idx: 202, name: "f202", desc: "三费比重(非金融类指标)", scale: 1.0},
@@ -222,6 +232,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 206, name: "f206", desc: "息税前利润(EBIT)", scale: 1.0},
 	{idx: 207, name: "f207", desc: "息税折旧摊销前利润(EBITDA)", scale: 1.0},
 	{idx: 208, name: "f208", desc: "EBITDA/营业总收入(%)(非金融类指标)", scale: 1.0},
+	//---------------------资本结构分析---------------------
 	{idx: 209, name: "f209", desc: "资产负债率(%)", scale: 1.0},
 	{idx: 210, name: "f210", desc: "流动资产比率(非金融类指标)", scale: 1.0},
 	{idx: 211, name: "f211", desc: "货币资金比率(非金融类指标)", scale: 1.0},
@@ -231,6 +242,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 215, name: "f215", desc: "归属于母公司股东权益/全部投入资本(%)", scale: 1.0},
 	{idx: 216, name: "f216", desc: "股东的权益/带息债务(%)", scale: 1.0},
 	{idx: 217, name: "f217", desc: "有形资产/净债务(%)", scale: 1.0},
+	//---------------------现金流量分析---------------------
 	{idx: 218, name: "f218", desc: "每股经营性现金流(元)", scale: 1.0},
 	{idx: 219, name: "f219", desc: "营业收入现金含量(%)(非金融类指标)", scale: 1.0},
 	{idx: 220, name: "f220", desc: "经营活动产生的现金流量净额/经营活动净收益(%)", scale: 1.0},
@@ -242,14 +254,16 @@ var cwbase = []cwColumnDesc{
 	{idx: 226, name: "f226", desc: "经营净现金比率（全部债务）", scale: 1.0},
 	{idx: 227, name: "f227", desc: "经营活动现金净流量与净利润比率", scale: 1.0},
 	{idx: 228, name: "f228", desc: "全部资产现金回收率", scale: 1.0},
+	//---------------------单季度财务指标---------------------
 	{idx: 229, name: "f229", desc: "营业收入", scale: 1.0},
 	{idx: 230, name: "f230", desc: "营业利润", scale: 1.0},
 	{idx: 231, name: "f231", desc: "归属于母公司所有者的净利润", scale: 1.0},
-	{idx: 232, name: "f232", desc: "2扣除非经常性损益后的净利润", scale: 1.0},
+	{idx: 232, name: "f232", desc: "扣除非经常性损益后的净利润", scale: 1.0},
 	{idx: 233, name: "f233", desc: "经营活动产生的现金流量净额", scale: 1.0},
 	{idx: 234, name: "f234", desc: "投资活动产生的现金流量净额", scale: 1.0},
 	{idx: 235, name: "f235", desc: "筹资活动产生的现金流量净额2", scale: 1.0},
 	{idx: 236, name: "f236", desc: "现金及现金等价物净增加额", scale: 1.0},
+	//---------------------股本股东---------------------
 	{idx: 237, name: "f237", desc: "总股本", scale: 1.0},
 	{idx: 238, name: "f238", desc: "已上市流通A股", scale: 1.0},
 	{idx: 239, name: "f239", desc: "已上市流通B股", scale: 1.0},
@@ -258,6 +272,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 242, name: "f242", desc: "第一大股东的持股数量", scale: 1.0},
 	{idx: 243, name: "f243", desc: "十大流通股东持股数量合计(股)", scale: 1.0},
 	{idx: 244, name: "f244", desc: "十大股东持股数量合计(股)", scale: 1.0},
+	//---------------------机构持股---------------------
 	{idx: 245, name: "f245", desc: "机构总量（家）", scale: 1.0},
 	{idx: 246, name: "f246", desc: "机构持股总量(股)", scale: 1.0},
 	{idx: 247, name: "f247", desc: "QFII机构数", scale: 1.0},
@@ -276,13 +291,19 @@ var cwbase = []cwColumnDesc{
 	{idx: 260, name: "f260", desc: "财务公司持股量", scale: 1.0},
 	{idx: 261, name: "f261", desc: "年金机构数", scale: 1.0},
 	{idx: 262, name: "f262", desc: "年金持股量", scale: 1.0},
-	{idx: 263, name: "f263", desc: "十大流通股东中持有A股合计(股)", scale: 1.0},
+	//---------------------新增指标---------------------
+	{idx: 263, name: "f263", desc: "十大流通股东中持有A股合计(股)", scale: 1.0}, //[ 注：2019半年报之前，季度报告中，
+	// 若股东持股除了流通A股、还有流通B股或流通H股，
+	// 指标264取的是包含流通B股或流通H股的流通股数]
 	{idx: 264, name: "f264", desc: "第一大流通股东持股量(股)", scale: 1.0},
-	{idx: 265, name: "f265", desc: "自由流通股(股)", scale: 1.0},
+	{idx: 265, name: "f265", desc: "自由流通股(股)", scale: 1.0}, //[注：1.自由流通股=已流通A股-十大流通股东5%以上的A股；
+	// 2.季度报告中，若股东同时持有非流通A股性质的股份(如同时持有流通A股和流通H股），
+	// 5%以上的持股取的是不包含同时持有非流通A股性质的流通股数，结果可能偏大；
+	// 3.指标按报告期展示，新股在上市日的下个报告期才有数据]
 	{idx: 266, name: "f266", desc: "受限流通A股(股)", scale: 1.0},
 	{idx: 267, name: "f267", desc: "一般风险准备(金融类)", scale: 1.0},
-	{idx: 268, name: "f268", desc: "六、其他综合收益", scale: 1.0},
-	{idx: 269, name: "f269", desc: "七、综合收益总额", scale: 1.0},
+	{idx: 268, name: "f268", desc: "其他综合收益(利润表)", scale: 1.0},
+	{idx: 269, name: "f269", desc: "综合收益总额(利润表)", scale: 1.0},
 	{idx: 270, name: "f270", desc: "归属于母公司股东权益(资产负债表)", scale: 1.0},
 	{idx: 271, name: "f271", desc: "银行机构数(家)(机构持股)", scale: 1.0},
 	{idx: 272, name: "f272", desc: "银行持股量(股)(机构持股)", scale: 1.0},
@@ -296,8 +317,10 @@ var cwbase = []cwColumnDesc{
 	{idx: 280, name: "f280", desc: "加权净资产收益率(每股指标)", scale: 1.0},
 	{idx: 281, name: "f281", desc: "扣非每股收益(单季度财务指标)", scale: 1.0},
 	{idx: 282, name: "f282", desc: "最近一年营业收入（万元）", scale: 1.0},
-	{idx: 283, name: "f283", desc: "国家队持股数量（万股)", scale: 1.0},
-	{idx: 284, name: "f284", desc: "业绩预告-本期净利润同比增幅下限%", scale: 1.0},
+	{idx: 283, name: "f283", desc: "国家队持股数量（万股)", scale: 1.0}, //[注：本指标统计包含汇金公司、证金公司、外汇管理局旗下投资平台、
+	// 国家队基金、国开、养老金以及中科汇通等国家队机构持股数量]
+	{idx: 284, name: "f284", desc: "业绩预告-本期净利润同比增幅下限%", scale: 1.0}, //[注：指标285至294展示未来一个报告期的数据。例，
+	// 3月31日至6月29日这段时间内展示的是中报的数据；如果最新的财务报告后面有多个报告期的业绩预告/快报，只能展示最新的财务报告后面的一个报告期的业绩预告/快报]
 	{idx: 285, name: "f285", desc: "业绩预告-本期净利润同比增幅上限%", scale: 1.0},
 	{idx: 286, name: "f286", desc: "归母净利润（业绩快报）", scale: 1.0},
 	{idx: 287, name: "f287", desc: "扣非净利润（业绩快报）", scale: 1.0},
@@ -325,18 +348,24 @@ var cwbase = []cwColumnDesc{
 	{idx: 309, name: "f309", desc: "近一年现金净流量（万元）", scale: 1.0},
 	{idx: 310, name: "f310", desc: "基本每股收益（单季度）", scale: 1.0},
 	{idx: 311, name: "f311", desc: "营业总收入(单季度)(万元)", scale: 1.0},
-	{idx: 312, name: "f312", desc: "业绩预告公告日期 ", scale: 1.0},
-	{idx: 313, name: "f313", desc: "财报公告日期", scale: 1.0},
-	{idx: 314, name: "f314", desc: "业绩快报公告日期", scale: 1.0},
+	{idx: 312, name: "f312", desc: "业绩预告公告日期 ", scale: 1.0}, //[注：本指标展示未来一个报告期的数据。例,
+	// 3月31日至6月29日这段时间内展示的是中报的数据；如果最新的财务报告后面有多个报告期的业绩预告/快报，只能展示最新的财务报告后面的一个报告期的
+	// 业绩预告/快报的数据；公告日期格式为YYMMDD，例：190101代表2019年1月1日]
+	{idx: 313, name: "f313", desc: "财报公告日期", scale: 1.0},   //[注：日期格式为YYMMDD,例：190101代表2019年1月1日]
+	{idx: 314, name: "f314", desc: "业绩快报公告日期", scale: 1.0}, //[注：本指标展示未来一个报告期的数据。例,
+	// 3月31日至6月29日这段时间内展示的是中报的数据；如果最新的财务报告后面有多个报告期的业绩预告/快报，
+	// 只能展示最新的财务报告后面的一个报告期的业绩预告/快报的数据；公告日期格式为YYMMDD，例：190101代表2019年1月1日]
 	{idx: 315, name: "f315", desc: "近一年投资活动现金流净额(万元)", scale: 1.0},
 	{idx: 316, name: "f316", desc: "业绩预告-本期净利润下限(万元)", scale: 1.0},
-	{idx: 317, name: "f317", desc: "业绩预告-本期净利润上限(万元)", scale: 1.0},
+	{idx: 317, name: "f317", desc: "业绩预告-本期净利润上限(万元)", scale: 1.0}, //[注：指标317至318展示未来一个报告期的数据。例，
+	// 3月31日至6月29日这段时间内展示的是中报的数据；如果最新的财务报告后面有多个报告期的业绩预告/快报，
+	// 只能展示最新的财务报告后面的一个报告期的业绩预告/快报]
 	{idx: 318, name: "f318", desc: "营业总收入TTM(万元)", scale: 1.0},
 	{idx: 319, name: "f319", desc: "员工总数(人)", scale: 1.0},
 	{idx: 320, name: "f320", desc: "每股企业自由现金流", scale: 1.0},
 	{idx: 321, name: "f321", desc: "每股股东自由现金流", scale: 1.0},
-	{idx: 322, name: "f322", desc: "col323", scale: 1.0},
-	{idx: 323, name: "f323", desc: "col324", scale: 1.0},
+	{idx: 322, name: "f322", desc: "近一年营业利润（万元）", scale: 1.0},
+	{idx: 323, name: "f323", desc: "净利润（单季度）(万元）", scale: 1.0},
 	{idx: 324, name: "f324", desc: "col325", scale: 1.0},
 	{idx: 325, name: "f325", desc: "col326", scale: 1.0},
 	{idx: 326, name: "f326", desc: "col327", scale: 1.0},
@@ -413,6 +442,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 397, name: "f397", desc: "col398", scale: 1.0},
 	{idx: 398, name: "f398", desc: "col399", scale: 1.0},
 	{idx: 399, name: "f399", desc: "col400", scale: 1.0},
+	//---------------------资产负债表新增指标---------------------
 	{idx: 400, name: "f400", desc: "专项储备(万元)", scale: 1.0},
 	{idx: 401, name: "f401", desc: "结算备付金(万元)", scale: 1.0},
 	{idx: 402, name: "f402", desc: "拆出资金(万元)", scale: 1.0},
@@ -452,6 +482,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 436, name: "f436", desc: "应收款项融资(万元)", scale: 1.0},
 	{idx: 437, name: "f437", desc: "使用权资产(万元)", scale: 1.0},
 	{idx: 438, name: "f438", desc: "租赁负债(万元)", scale: 1.0},
+	//--------------------以下要确认的
 	{idx: 439, name: "f439", desc: "col440", scale: 1.0},
 	{idx: 440, name: "f440", desc: "col441", scale: 1.0},
 	{idx: 441, name: "f441", desc: "col442", scale: 1.0},
@@ -513,12 +544,13 @@ var cwbase = []cwColumnDesc{
 	{idx: 497, name: "f497", desc: "col498", scale: 1.0},
 	{idx: 498, name: "f498", desc: "col499", scale: 1.0},
 	{idx: 499, name: "f499", desc: "col500", scale: 1.0},
+	//---------------------利润表新增指标---------------------
 	{idx: 500, name: "f500", desc: "稀释每股收益(元)", scale: 1.0},
 	{idx: 501, name: "f501", desc: "营业总收入(万元)", scale: 1.0},
 	{idx: 502, name: "f502", desc: "汇兑收益(万元)", scale: 1.0},
 	{idx: 503, name: "f503", desc: "其中:归属于母公司综合收益(万元)", scale: 1.0},
 	{idx: 504, name: "f504", desc: "其中:归属于少数股东综合收益(万元)", scale: 1.0},
-	{idx: 505, name: "f505", desc: "利息净收入(万元)", scale: 1.0},
+	{idx: 505, name: "f505", desc: "利息收入(万元)", scale: 1.0},
 	{idx: 506, name: "f506", desc: "已赚保费(万元)", scale: 1.0},
 	{idx: 507, name: "f507", desc: "手续费及佣金收入(万元)", scale: 1.0},
 	{idx: 508, name: "f508", desc: "利息支出(万元)", scale: 1.0},
@@ -534,6 +566,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 518, name: "f518", desc: "营业总成本(万元)", scale: 1.0},
 	{idx: 519, name: "f519", desc: "信用减值损失(万元、2019格式)", scale: 1.0},
 	{idx: 520, name: "f520", desc: "资产减值损失(万元、2019格式)", scale: 1.0},
+	//--------------------以下要确认的
 	{idx: 521, name: "f521", desc: "其他业务收入(万元)", scale: 1.0},
 	{idx: 522, name: "f522", desc: "业务及管理费(万元)", scale: 1.0},
 	{idx: 523, name: "f523", desc: "col524", scale: 1.0},
@@ -573,6 +606,7 @@ var cwbase = []cwColumnDesc{
 	{idx: 557, name: "f557", desc: "col558", scale: 1.0},
 	{idx: 558, name: "f558", desc: "col559", scale: 1.0},
 	{idx: 559, name: "f559", desc: "col560", scale: 1.0},
+	//---------------------现金流量表新增指标---------------------
 	{idx: 560, name: "f560", desc: "加:其他原因对现金的影响2(万元)(现金的期末余额科目)", scale: 1.0},
 	{idx: 561, name: "f561", desc: "客户存款和同业存放款项净增加额(万元)", scale: 1.0},
 	{idx: 562, name: "f562", desc: "向中央银行借款净增加额(万元)", scale: 1.0},
@@ -592,7 +626,8 @@ var cwbase = []cwColumnDesc{
 	{idx: 576, name: "f576", desc: "其中:子公司吸收少数股东投资收到的现金(万元)", scale: 1.0},
 	{idx: 577, name: "f577", desc: "其中:子公司支付给少数股东的股利、利润(万元)", scale: 1.0},
 	{idx: 578, name: "f578", desc: "投资性房地产的折旧及摊销(万元)", scale: 1.0},
-	{idx: 579, name: "f579", desc: "col580", scale: 1.0},
+	{idx: 579, name: "f579", desc: "信用减值损失(万元)", scale: 1.0},
+	//--------------------以下要确认的
 	{idx: 580, name: "f580", desc: "col581", scale: 1.0},
 	{idx: 581, name: "f581", desc: "col582", scale: 1.0},
 	{idx: 582, name: "f582", desc: "col583", scale: 1.0},
