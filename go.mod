@@ -3,12 +3,15 @@ module github.com/jing2uo/tdx2db
 go 1.25.3
 
 require (
+	github.com/LindsayBradford/go-dbf v1.0.0-aplha.4
 	github.com/duckdb/duckdb-go/v2 v2.5.0
 	github.com/spf13/cobra v1.10.1
+	golang.org/x/text v0.28.0
 )
 
 require (
 	github.com/apache/arrow-go/v18 v18.4.1 // indirect
+	github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394 // indirect
 	github.com/duckdb/duckdb-go-bindings v0.1.21 // indirect
 	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.21 // indirect
 	github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.21 // indirect

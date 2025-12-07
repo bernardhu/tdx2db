@@ -25,7 +25,7 @@ func main() {
 		SilenceErrors: true,
 	}
 
-	var dbPath, dayFileDir, minline, workdayPath, workdayYear, cwdayPath, gpdayPath string
+	var dbPath, dayFileDir, minline, workdayPath, workdayYear, cwdayPath, gpdayPath, basePath string
 	var (
 		m1FileDir   string
 		m5FileDir   string
@@ -90,6 +90,17 @@ func main() {
 		Short: "Cron for update gupiao",
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := cmd.Gp(dbPath, gpdayPath); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+
+	var baseCmd = &cobra.Command{
+		Use:   "base",
+		Short: "Cron for update base",
+		RunE: func(c *cobra.Command, args []string) error {
+			if err := cmd.Base(dbPath, basePath); err != nil {
 				return err
 			}
 			return nil
@@ -181,6 +192,11 @@ func main() {
 	cwCmd.MarkFlagRequired("dbpath")
 	cwCmd.MarkFlagRequired("cwpath")
 
+	baseCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
+	baseCmd.Flags().StringVar(&basePath, "basepath", "", "通达信base文件路径")
+	baseCmd.MarkFlagRequired("dbpath")
+	baseCmd.MarkFlagRequired("basepath")
+
 	gpCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
 	gpCmd.Flags().StringVar(&gpdayPath, "gppath", "", "通达信股票文件路径")
 	gpCmd.MarkFlagRequired("dbpath")
@@ -201,6 +217,7 @@ func main() {
 	rootCmd.AddCommand(workdayCmd)
 	rootCmd.AddCommand(cwCmd)
 	rootCmd.AddCommand(gpCmd)
+	rootCmd.AddCommand(baseCmd)
 
 	cobra.OnFinalize(func() {
 		os.RemoveAll(cmd.DataDir)
