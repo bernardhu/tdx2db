@@ -35,7 +35,7 @@ func Cw(dbPath, cwFileDir string) error {
 	}
 
 	targetPath := filepath.Join(cwFileDir, "gpcw.txt")
-	existingHashes, err := loadGpcwHashes(targetPath)
+	existingHashes, err := loadHashes(targetPath)
 	if err != nil {
 		return fmt.Errorf("failed to read existing gpcw cache: %w", err)
 	}
@@ -57,7 +57,7 @@ func Cw(dbPath, cwFileDir string) error {
 		return nil
 	}
 
-	latestHashes, err := loadGpcwHashes(targetPath)
+	latestHashes, err := loadHashes(targetPath)
 	if err != nil {
 		return fmt.Errorf("failed to read latest gpcw.txt: %w", err)
 	}
@@ -121,7 +121,7 @@ func Cw(dbPath, cwFileDir string) error {
 	return nil
 }
 
-func loadGpcwHashes(path string) (map[string]string, error) {
+func loadHashes(path string) (map[string]string, error) {
 	hashes := make(map[string]string)
 
 	f, err := os.Open(path)

@@ -73,6 +73,8 @@ docker run -it -v /Users/huguanrui/go/src/github.com/tdx/tdx2db/datatool:/datato
 
 ./tdx2db cw --cwpath datatool/vipdoc/tdxfin --dbpath tdx.db
 
+./tdx2db gp --gppath datatool/vipdoc/tdxgp --dbpath tdx.db
+
 股票数据包
 mkdir -p ./datatool/vipdoc/tdxgp
 cd ./datatool/vipdoc/tdxgp && wget https://data.tdx.com.cn/vipdoc/tdxgp.zip && unzip tdxgp.zip && rm -rf tdxgp.zip
