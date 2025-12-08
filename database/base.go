@@ -10,6 +10,7 @@ import (
 
 	_ "github.com/duckdb/duckdb-go/v2"
 	"github.com/jing2uo/tdx2db/model"
+	"github.com/jing2uo/tdx2db/tdx"
 )
 
 var BaseSchema = TableSchema{
@@ -132,6 +133,110 @@ func ImportBase(db *sql.DB, recs []*model.DbfRecord) error {
 
 	if err := ImportCSV(db, BaseSchema, tmpFile.Name()); err != nil {
 		return fmt.Errorf("failed to import CSV: %s %w", tmpFile.Name(), err)
+	}
+
+	return nil
+}
+
+var BlockSchema = TableSchema{
+	Name: "raw_block",
+	Columns: []string{
+		"block VARCHAR",
+		"blocktype VARCHAR",
+		"code VARCHAR",
+		"level INT",
+		"total INT",
+	},
+}
+
+var blockColumnNames = []string{
+	"block", "blocktype", "code", "level", "total",
+}
+
+func CheckBlocks(db *sql.DB) error {
+	//每次导入都重新建表
+	if err := DropTable(db, BlockSchema); err != nil {
+		return fmt.Errorf("failed to drop table: %w", err)
+	}
+
+	if err := CreateTable(db, BlockSchema); err != nil {
+		return fmt.Errorf("failed to create table: %w", err)
+	}
+
+	return nil
+}
+
+func ImportBlocks(db *sql.DB, recs []*tdx.BlockData, typ string, filter map[string]*tdx.BlockData) error {
+	tmpFile, err := os.CreateTemp("", "tdx-block.csv")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	writer := csv.NewWriter(tmpFile)
+	if err := writer.Write(blockColumnNames); err != nil {
+		return fmt.Errorf("failed to write CSV header: %w", err)
+	}
+
+	for _, record := range recs {
+		old, ok := filter[record.Name]
+		if ok && old.Level == record.Level && old.Count == record.Count {
+			fmt.Printf("⚠️ ImportBlocks skip block name:%s level:%d count:%d\n", record.Name, record.Level, record.Count)
+			continue
+		} else {
+			filter[record.Name] = record
+		}
+		row := make([]string, len(blockColumnNames))
+		for _, code := range record.Codes {
+			row[0] = record.Name
+			row[1] = typ
+			row[2] = code
+			row[3] = strconv.Itoa(int(record.Level))
+			row[4] = strconv.Itoa(int(record.Count))
+			if err := writer.Write(row); err != nil {
+				return fmt.Errorf("failed to write CSV row for %s: %w", code, err)
+			}
+		}
+	}
+
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return fmt.Errorf("failed to flush CSV writer: %w", err)
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("failed to close temp CSV: %w", err)
+	}
+
+	if err := ImportCSV(db, BlockSchema, tmpFile.Name()); err != nil {
+		return fmt.Errorf("failed to import CSV: %s %w", tmpFile.Name(), err)
+	}
+
+	return nil
+}
+
+var DelistSchema = TableSchema{
+	Name: "raw_delist",
+	Columns: []string{
+		"code VARCHAR",
+		"name VARCHAR",
+		"inlist DATE",
+		"delist DATE",
+		"mkt VARCHAR",
+	},
+}
+
+func ImportDelist(db *sql.DB, path string) error {
+	if err := DropTable(db, DelistSchema); err != nil {
+		return fmt.Errorf("failed to drop table: %w", err)
+	}
+
+	if err := CreateTable(db, DelistSchema); err != nil {
+		return fmt.Errorf("failed to create table: %w", err)
+	}
+
+	if err := ImportCSV(db, DelistSchema, path); err != nil {
+		return fmt.Errorf("failed to import CSV: %s %w", path, err)
 	}
 
 	return nil

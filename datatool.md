@@ -84,3 +84,6 @@ cd ./datatool/vipdoc/tdxgp && wget https://data.tdx.com.cn/vipdoc/tdxgp.zip && u
 mkdir -p ./datatool/vipdoc/tdxfin
 cd ./datatool/vipdoc/tdxfin && wget https://data.tdx.com.cn/vipdoc/tdxfin.zip && unzip tdxfin.zip && rm -rf tdxfin.zip
 
+base数据，包括板块信息
+./tdx2db base --basepath /Users/bernard/go/src/tdx/tdx2db/datatool/vipdoc/base --dbpath tdx.db 
+

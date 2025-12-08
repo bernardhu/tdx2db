@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"path/filepath"
 
 	_ "github.com/duckdb/duckdb-go/v2"
@@ -27,23 +29,23 @@ func Base(dbPath, baseFileDir string) error {
 	if err != nil {
 		return err
 	}
-	/*
-		targetPath := filepath.Join(baseFileDir, "base.zip")
-		url := "https://www.tdx.com.cn/products/data/data/dbf/base.zip"
-		cmd := exec.Command("wget", "-O", targetPath, url)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("⚠️ wget 下载 %s 失败: %v\n", url, err)
-			return err
-		}
+	targetPath := filepath.Join(baseFileDir, "base.zip")
+	url := "https://www.tdx.com.cn/products/data/data/dbf/base.zip"
+	cmd := exec.Command("wget", "-O", targetPath, url)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-		fmt.Printf("✅ 已下载 %s %s\n", url, targetPath)
-		if err := utils.UnzipFile(targetPath, baseFileDir); err != nil {
-			return fmt.Errorf("failed to unzip file %s: %w", targetPath, err)
-		}
-	*/
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("⚠️ wget 下载 %s 失败: %v\n", url, err)
+		return err
+	}
+
+	fmt.Printf("✅ 已下载 %s %s\n", url, targetPath)
+	if err := utils.UnzipFile(targetPath, baseFileDir); err != nil {
+		return fmt.Errorf("failed to unzip file %s: %w", targetPath, err)
+	}
+
 	dbfPath := filepath.Join(baseFileDir, "base.dbf")
 	recs, err := tdx.ParseBaseDbf(dbfPath)
 	if err != nil {
@@ -56,20 +58,80 @@ func Base(dbPath, baseFileDir string) error {
 	}
 	fmt.Printf("✅ 已导入base数据%s\n", dbfPath)
 
+	//-------------------block data--------------------
+	blockFilter := make(map[string]*tdx.BlockData)
+	database.CheckBlocks(db)
 	blkPath := filepath.Join(baseFileDir, "block.dat")
-	tdx.ReadBlock(blkPath)
-	fmt.Printf("✅ 已导入一般板块数据%s\n", blkPath)
+	brecs, err := tdx.ReadBlock(blkPath)
+	if err == nil {
+		err = database.ImportBlocks(db, brecs, "normal", blockFilter)
+		if err == nil {
+			fmt.Printf("✅ 已导入一般板块数据%s\n", blkPath)
+		} else {
+			fmt.Printf("❌ 导入一般板块数据%s 失败 %v\n", blkPath, err)
+		}
+	} else {
+		fmt.Printf("❌ 读取一般板块数据%s 失败 %v\n", blkPath, err)
+	}
 
 	blkPath = filepath.Join(baseFileDir, "block_gn.dat")
-	tdx.ReadBlock(blkPath)
-	fmt.Printf("✅ 已导入概念板块数据%s\n", blkPath)
+	brecs, err = tdx.ReadBlock(blkPath)
+	if err == nil {
+		err = database.ImportBlocks(db, brecs, "concept", blockFilter)
+		if err == nil {
+			fmt.Printf("✅ 已导入概念板块数据%s\n", blkPath)
+		} else {
+			fmt.Printf("❌ 导入概念板块数据%s 失败 %v\n", blkPath, err)
+		}
+	} else {
+		fmt.Printf("❌ 读取概念板块数据%s 失败 %v\n", blkPath, err)
+	}
 
 	blkPath = filepath.Join(baseFileDir, "block_fg.dat")
-	tdx.ReadBlock(blkPath)
-	fmt.Printf("✅ 已导入风格板块数据%s\n", blkPath)
+	brecs, err = tdx.ReadBlock(blkPath)
+	if err == nil {
+		err = database.ImportBlocks(db, brecs, "style", blockFilter)
+		if err == nil {
+			fmt.Printf("✅ 已导入风格板块数据%s\n", blkPath)
+		} else {
+			fmt.Printf("❌ 导入风格板块数据%s 失败 %v\n", blkPath, err)
+		}
+	} else {
+		fmt.Printf("❌ 读取风格板块数据%s 失败 %v\n", blkPath, err)
+	}
 
 	blkPath = filepath.Join(baseFileDir, "block_zs.dat")
-	tdx.ReadBlock(blkPath)
-	fmt.Printf("✅ 已导入指数板块数据%s\n", blkPath)
+	brecs, err = tdx.ReadBlock(blkPath)
+	if err == nil {
+		err = database.ImportBlocks(db, brecs, "index", blockFilter)
+		if err == nil {
+			fmt.Printf("✅ 已导入指数板块数据%s\n", blkPath)
+		} else {
+			fmt.Printf("❌ 导入指数板块数据%s 失败 %v\n", blkPath, err)
+		}
+	} else {
+		fmt.Printf("❌ 读取指数板块数据%s 失败 %v\n", blkPath, err)
+	}
+
+	//-------------------delist data--------------------
+	/*
+		SELECT EXTRACT(YEAR FROM delist) AS y, COUNT(*) AS cnt FROM raw_delist GROUP BY y ORDER BY y;
+	*/
+	cmd = exec.Command("python", "delist.py")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("⚠️ python 获取沪深退市名单失败: %v\n", err)
+		return err
+	}
+
+	delistPath := filepath.Join(baseFileDir, "delist.csv")
+	err = database.ImportDelist(db, delistPath)
+	if err == nil {
+		fmt.Printf("✅ 已导入退市数据%s\n", delistPath)
+	} else {
+		fmt.Printf("❌ 导入退市数据%s 失败 %v\n", delistPath, err)
+	}
+
 	return nil
 }

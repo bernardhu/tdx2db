@@ -123,18 +123,15 @@ func readIndexs(b *BlockHeader, r io.Reader) ([]BlockIndex, error) {
 }
 
 func readBlockRecord(idx []BlockIndex, r io.Reader) ([]*BlockData, error) {
-	dataEnd := 0
+	bufSize := 0
 	for _, v := range idx {
-		end := int(v.Offset + v.Length)
-		if end > dataEnd {
-			dataEnd = end
-		}
+		bufSize = bufSize + int(v.Length)
 	}
-	if dataEnd == 0 {
+	if bufSize == 0 {
 		return nil, fmt.Errorf("no block data located")
 	}
 
-	buf := make([]byte, dataEnd)
+	buf := make([]byte, bufSize)
 	if _, err := io.ReadFull(r, buf); err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 		return nil, fmt.Errorf("read blocks: %w", err)
 	}
@@ -166,7 +163,7 @@ func readBlockRecord(idx []BlockIndex, r io.Reader) ([]*BlockData, error) {
 		return nil, fmt.Errorf("block data section missing")
 	}
 
-	fmt.Printf("blockLen:%d size:%d\n", blockLen, dataSize)
+	//fmt.Printf("blockLen:%d size:%d\n", blockLen, dataSize)
 	res := make([]*BlockData, 0, blockLen)
 	for i := 0; i < blockLen; i++ {
 		start := i * dataSize
@@ -175,26 +172,22 @@ func readBlockRecord(idx []BlockIndex, r io.Reader) ([]*BlockData, error) {
 			return nil, fmt.Errorf("block data overflow for index %d", i)
 		}
 		recBuf := dataBufs[start:end]
+		//fmt.Printf("start:%d end:%d data:%x\n", start, end, recBuf)
 		rec, err := parseBlockData(recBuf)
 		if err != nil {
 			return nil, fmt.Errorf("parse block %d: %w", i, err)
 		}
-		res = append(res, rec)
-	}
 
+		res = append(res, rec)
+		//fmt.Printf("start:%d end:%d parsedata:%v \n", start, end, *rec)
+	}
 	return res, nil
 }
 
 func parseBlockData(buf []byte) (*BlockData, error) {
 	offset := 0
-	name, next, err := readCString(buf, offset)
-	if err != nil {
-		return nil, fmt.Errorf("read name: %w", err)
-	}
-	offset = next
-	if offset+4 > len(buf) {
-		return nil, fmt.Errorf("record truncated")
-	}
+	name := gbkToUTF8(trimZero(buf[0:9]))
+	offset = offset + 9
 	count := binary.LittleEndian.Uint16(buf[offset : offset+2])
 	offset += 2
 	level := binary.LittleEndian.Uint16(buf[offset : offset+2])
@@ -229,7 +222,7 @@ func ReadBlock(path string) ([]*BlockData, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read header: %w", err)
 	}
-	fmt.Printf("header %s %v\n", path, *header)
+	//fmt.Printf("header %s %v\n", path, *header)
 
 	ids, err := readIndexs(header, f)
 	if err != nil {
@@ -241,9 +234,36 @@ func ReadBlock(path string) ([]*BlockData, error) {
 		fmt.Printf("err:%v", err)
 		return nil, fmt.Errorf("read block data: %w", err)
 	}
-	fmt.Printf("len:%d\n", len(res))
-	for _, v := range res {
-		fmt.Printf("bdata %s %v\n", path, *v)
+	//fmt.Printf("len:%d\n", len(res))
+	return res, nil
+}
+
+// sz: https://www.szse.cn/api/report/ShowReport?SHOWTYPE=xlsx&CATALOGID=1793_ssgs&TABKEY=tab2&random=0.11267117882064226
+// sh: https://www.sse.com.cn/assortment/stock/list/delisting/
+// bj: ?
+func ReadDelist(path string) ([]*BlockData, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("open file: %w", err)
 	}
+	defer f.Close()
+
+	header, err := readHeader(f)
+	if err != nil {
+		return nil, fmt.Errorf("read header: %w", err)
+	}
+	//fmt.Printf("header %s %v\n", path, *header)
+
+	ids, err := readIndexs(header, f)
+	if err != nil {
+		return nil, fmt.Errorf("read index: %w", err)
+	}
+
+	res, err := readBlockRecord(ids, f)
+	if err != nil {
+		fmt.Printf("err:%v", err)
+		return nil, fmt.Errorf("read block data: %w", err)
+	}
+	//fmt.Printf("len:%d\n", len(res))
 	return res, nil
 }
