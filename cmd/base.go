@@ -47,6 +47,7 @@ func Base(dbPath, baseFileDir string) error {
 	}
 
 	//read bloclcfg
+	//这个在vipdoc里面，需要手动更新
 	cfgPath := filepath.Join(baseFileDir, "tdxzs3.cfg")
 	crecs, err := tdx.ReadBlockCfg(cfgPath)
 	if err != nil {
