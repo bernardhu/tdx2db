@@ -144,13 +144,14 @@ var BlockSchema = TableSchema{
 		"block VARCHAR",
 		"blocktype VARCHAR",
 		"code VARCHAR",
+		"refcode VARCHAR",
 		"level INT",
 		"total INT",
 	},
 }
 
 var blockColumnNames = []string{
-	"block", "blocktype", "code", "level", "total",
+	"block", "blocktype", "code", "refcode", "level", "total",
 }
 
 func CheckBlocks(db *sql.DB) error {
@@ -166,7 +167,7 @@ func CheckBlocks(db *sql.DB) error {
 	return nil
 }
 
-func ImportBlocks(db *sql.DB, recs []*tdx.BlockData, typ string, filter map[string]*tdx.BlockData) error {
+func ImportBlocks(db *sql.DB, recs []*tdx.BlockData, typ string, filter map[string]*tdx.BlockData, refs map[string]*tdx.BlockCfg) error {
 	tmpFile, err := os.CreateTemp("", "tdx-block.csv")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
@@ -186,13 +187,21 @@ func ImportBlocks(db *sql.DB, recs []*tdx.BlockData, typ string, filter map[stri
 		} else {
 			filter[record.Name] = record
 		}
+
 		row := make([]string, len(blockColumnNames))
 		for _, code := range record.Codes {
+			ref := refs[record.Name]
 			row[0] = record.Name
 			row[1] = typ
 			row[2] = code
-			row[3] = strconv.Itoa(int(record.Level))
-			row[4] = strconv.Itoa(int(record.Count))
+			if ref == nil {
+				fmt.Printf("type:%s name:%s. not found\n", typ, record.Name)
+				row[3] = ""
+			} else {
+				row[3] = ref.Code
+			}
+			row[4] = strconv.Itoa(int(record.Level))
+			row[5] = strconv.Itoa(int(record.Count))
 			if err := writer.Write(row); err != nil {
 				return fmt.Errorf("failed to write CSV row for %s: %w", code, err)
 			}
@@ -200,6 +209,72 @@ func ImportBlocks(db *sql.DB, recs []*tdx.BlockData, typ string, filter map[stri
 	}
 
 	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return fmt.Errorf("failed to flush CSV writer: %w", err)
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("failed to close temp CSV: %w", err)
+	}
+
+	if err := ImportCSV(db, BlockSchema, tmpFile.Name()); err != nil {
+		return fmt.Errorf("failed to import CSV: %s %w", tmpFile.Name(), err)
+	}
+
+	return nil
+}
+
+func ImportHyBlocks(db *sql.DB, recs []tdx.HyCfg, refs map[string]*tdx.BlockCfg) error {
+	tmpFile, err := os.CreateTemp("", "tdx-block.csv")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	writer := csv.NewWriter(tmpFile)
+	if err := writer.Write(blockColumnNames); err != nil {
+		return fmt.Errorf("failed to write CSV header: %w", err)
+	}
+
+	for _, record := range recs {
+		ref := refs[record.TdxHy]
+		row := make([]string, len(blockColumnNames))
+		row[1] = "tdxhy"
+		row[2] = record.Code
+		if ref == nil {
+			fmt.Printf("tdxhy:%s not found\n", record.TdxHy)
+			row[3] = ""
+			row[0] = ""
+		} else {
+			row[0] = ref.Name
+			row[3] = ref.Code
+		}
+		row[4] = "2"
+		row[5] = strconv.Itoa(int(record.TdxCnt))
+		if err := writer.Write(row); err != nil {
+			return fmt.Errorf("failed to write CSV row for %s: %w", record.Code, err)
+		}
+
+		ref = refs[record.SWHy]
+		if ref == nil {
+			fmt.Printf("swhy:%s not found\n", record.SWHy)
+			row[3] = ""
+			row[0] = ""
+		} else {
+			row[0] = ref.Name
+			row[3] = ref.Code
+		}
+		row[1] = "swhy"
+		row[2] = record.Code
+		row[4] = "2"
+		row[5] = strconv.Itoa(int(record.SwCnt))
+		if err := writer.Write(row); err != nil {
+			return fmt.Errorf("failed to write CSV row for %s: %w", record.Code, err)
+		}
+
+		writer.Flush()
+	}
+
 	if err := writer.Error(); err != nil {
 		return fmt.Errorf("failed to flush CSV writer: %w", err)
 	}
