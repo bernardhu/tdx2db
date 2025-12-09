@@ -240,8 +240,6 @@ func Gp(dbPath, gpFileDir string) error {
 		//fmt.Printf("typ:%s data:%v\n", typ, recs)
 		fmt.Printf("✅ 已解析股票数据%s\n", targetPath)
 
-		return nil
-
 	}
 
 	return nil

@@ -1,6 +1,6 @@
 Year="2025"
 list=`date "+%m%d"`
-list="1205"
+
 
 
 work="/Volumes/WD"

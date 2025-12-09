@@ -12,42 +12,51 @@ type gpColumnDesc struct {
 // GPJYONE()
 var gpbase = []gpColumnDesc{
 	{typ: 1, name0: "f10", desc0: "股东户数(户)", name1: "", desc1: ""},
-	{typ: 2, name0: "f20", desc0: "龙虎榜买入总计(万元)", name1: "f21", desc1: "龙虎榜卖出总计(万元)"},
-	{typ: 3, name0: "f30", desc0: "融资余额(万元)", name1: "f31", desc1: "融券余量(股)"},
 	{typ: 4, name0: "f40", desc0: "大宗交易成交均价(元)", name1: "f41", desc1: "大宗交易成交额(万元)"},
 	{typ: 5, name0: "f50", desc0: "增减持成交均价(元)", name1: "f51", desc1: "增减持变动股数(股)"},
+	{typ: 23, name0: "f230", desc0: "拟增持数量(万股)", name1: "f231", desc1: "拟减持数量(万股)"},
+	{typ: 26, name0: "f260", desc0: "拟增持金额(万元)", name1: "f261", desc1: "拟减持金额(万元)"},
+	{typ: 28, name0: "f280", desc0: "股票回购均价(元)", name1: "f281", desc1: "股票回购数量(万股)"},
+	{typ: 35, name0: "f350", desc0: "增持数量(股)", name1: "f351", desc1: "减持数量(股)"},
+
 	{typ: 6, name0: "f60", desc0: "陆股通持股量(股)", name1: "", desc1: ""},
 	{typ: 7, name0: "f70", desc0: "陆股通市场净买入(万元)", name1: "", desc1: ""},
-	{typ: 8, name0: "f80", desc0: "龙虎榜机构卖方机构个数", name1: "f81", desc1: "龙虎榜机构卖出金额(万元)"},
-	{typ: 9, name0: "f90", desc0: "龙虎榜机构买方机构个数", name1: "f91", desc1: "龙虎榜机构买入金额(万元)"},
 	{typ: 10, name0: "f100", desc0: "近3月机构调研次数", name1: "f101", desc1: "近3月调研机构数量"},
-	{typ: 11, name0: "f110", desc0: "融资买入额(万元)", name1: "f111", desc1: "融资偿还额(万元)"},
-	{typ: 12, name0: "f120", desc0: "融券卖出量(股)", name1: "f121", desc1: "融券偿还量(股)"},
-	{typ: 13, name0: "f130", desc0: "融资净买入(万元)", name1: "f131", desc1: "融券净卖出(股)"},
-	{typ: 14, name0: "f140", desc0: "涨停金额(万元) ", name1: "f141", desc1: "涨停开板次数"},
-	{typ: 15, name0: "f150", desc0: "涨跌停状态", name1: "f151", desc1: "封单金额(万元)"}, //涨停取2,曾涨停取1,跌停取-2,曾跌停取-1;跌停和曾跌停时,封单金额取负值
-	{typ: 16, name0: "f160", desc0: "总市值(万元)", name1: "", desc1: ""},
-	{typ: 17, name0: "f170", desc0: "龙虎榜营业部买入金额(万元)", name1: "f171", desc1: "龙虎榜营业部卖出金额(万元)"},
-	{typ: 18, name0: "f180", desc0: "龙虎榜沪深股通买入金额(万元)", name1: "f181", desc1: "龙虎榜沪深股通卖出金额(万元)"},
-	{typ: 19, name0: "f190", desc0: "每周无限售股份质押数(万) 有限售股份质押数(万)", name1: "f191", desc1: "每周有限售股份质押数(万)"},
-	{typ: 20, name0: "f200", desc0: "每周股票质押比例(%)", name1: "", desc1: ""},
-	{typ: 21, name0: "f210", desc0: "股息率(%)", name1: "", desc1: ""},
-	{typ: 22, name0: "f220", desc0: "涨跌停封流比", name1: "f221", desc1: "涨跌停封封流比"},
-	{typ: 23, name0: "f230", desc0: "拟增持数量(万股)", name1: "f231", desc1: "拟减持数量(万股)"},
-	{typ: 24, name0: "f240", desc0: "首次涨停时间", name1: "f241", desc1: "涨停最大封单额(万)"},
-	{typ: 25, name0: "f250", desc0: "开盘成交量(手)", name1: "f251", desc1: "盘后固定成交量(手)"},
-	{typ: 26, name0: "f260", desc0: "拟增持金额(万元)", name1: "f261", desc1: "拟减持金额(万元)"},
-	{typ: 27, name0: "f270", desc0: "市场人气排名", name1: "f271", desc1: "通达信研究行业人气排名"},
-	{typ: 28, name0: "f280", desc0: "股票回购均价(元)", name1: "f281", desc1: "股票回购数量(万股)"},
 	{typ: 29, name0: "f290", desc0: "是否复牌日", name1: "f291", desc1: "是否更名日"}, //注：是否复牌日说明：0-不是复牌日，n(n>0)-停牌n个交易日之后的复牌日；是否更名日说明：0-未更名，1-常规更名，2-加ST，3-加*ST，4-摘帽，5-其他
 	{typ: 30, name0: "f300", desc0: "派息金额(万元)", name1: "f301", desc1: "送转数量(股)"},
 	{typ: 31, name0: "f310", desc0: "转融券期初余量(股)", name1: "f311", desc1: "转融券期末余量(股)"},
 	{typ: 32, name0: "f320", desc0: "转融券融出数量(股)", name1: "f321", desc1: "转融券融出市值(元)"},
+
+	{typ: 2, name0: "f20", desc0: "龙虎榜买入总计(万元)", name1: "f21", desc1: "龙虎榜卖出总计(万元)"},
+	{typ: 8, name0: "f80", desc0: "龙虎榜机构卖方机构个数", name1: "f81", desc1: "龙虎榜机构卖出金额(万元)"},
+	{typ: 9, name0: "f90", desc0: "龙虎榜机构买方机构个数", name1: "f91", desc1: "龙虎榜机构买入金额(万元)"},
+	{typ: 17, name0: "f170", desc0: "龙虎榜营业部买入金额(万元)", name1: "f171", desc1: "龙虎榜营业部卖出金额(万元)"},
+	{typ: 18, name0: "f180", desc0: "龙虎榜沪深股通买入金额(万元)", name1: "f181", desc1: "龙虎榜沪深股通卖出金额(万元)"},
+	{typ: 37, name0: "f370", desc0: "龙虎榜上榜类型连续交易日(天)", name1: "", desc1: ""},
+
+	{typ: 3, name0: "f30", desc0: "融资余额(万元)", name1: "f31", desc1: "融券余量(股)"},
+	{typ: 11, name0: "f110", desc0: "融资买入额(万元)", name1: "f111", desc1: "融资偿还额(万元)"},
+	{typ: 12, name0: "f120", desc0: "融券卖出量(股)", name1: "f121", desc1: "融券偿还量(股)"},
+	{typ: 13, name0: "f130", desc0: "融资净买入(万元)", name1: "f131", desc1: "融券净卖出(股)"},
+
+	//select code,mkt,rdate,f140,f141,f150,f151,f220,f221,f240,f241,f330,f331,f340,f341,f360 from raw_gp_base where  f150!=0;
+	{typ: 14, name0: "f140", desc0: "涨停金额(万元) ", name1: "f141", desc1: "涨停开板次数"},
+	{typ: 15, name0: "f150", desc0: "涨跌停状态", name1: "f151", desc1: "封单金额(万元)"}, //涨停取2,曾涨停取1,跌停取-2,曾跌停取-1;跌停和曾跌停时,封单金额取负值
+	{typ: 22, name0: "f220", desc0: "涨跌停封流比", name1: "f221", desc1: "涨跌停封封流比"},
+	{typ: 24, name0: "f240", desc0: "首次涨停时间", name1: "f241", desc1: "涨停最大封单额(万)"},
 	{typ: 33, name0: "f330", desc0: "跌停金额(万元)", name1: "f331", desc1: "跌停开板次数"},
 	{typ: 34, name0: "f340", desc0: "跌停首次跌停时间", name1: "f341", desc1: "跌停最大封单额(万)"},
-	{typ: 35, name0: "f350", desc0: "增持数量(股)", name1: "f351", desc1: "减持数量(股)"},
 	{typ: 36, name0: "f360", desc0: "竞价涨停买入金额(万元)", name1: "", desc1: ""},
-	{typ: 37, name0: "f370", desc0: "龙虎榜上榜类型连续交易日(天)", name1: "", desc1: ""},
+
+	//select code,mkt,rdate,f160,f210,f250,f251,f270,f271 from raw_gp_base where COALESCE(f160, f210, f250, f251, f270, f271) IS NOT NULL;
+	{typ: 16, name0: "f160", desc0: "总市值(万元)", name1: "", desc1: ""},
+	{typ: 21, name0: "f210", desc0: "股息率(%)", name1: "", desc1: ""},
+	{typ: 25, name0: "f250", desc0: "开盘成交量(手)", name1: "f251", desc1: "盘后固定成交量(手)"},
+	{typ: 27, name0: "f270", desc0: "市场人气排名", name1: "f271", desc1: "通达信研究行业人气排名"},
+
+	//select code,mkt,rdate,f190,f191,f200 from raw_gp_base where COALESCE(f190,f191,f200) IS NOT NULL;
+	{typ: 19, name0: "f190", desc0: "每周无限售股份质押数(万) 有限售股份质押数(万)", name1: "f191", desc1: "每周有限售股份质押数(万)"},
+	{typ: 20, name0: "f200", desc0: "每周股票质押比例(%)", name1: "", desc1: ""},
 }
 
 //SCJYVALUE

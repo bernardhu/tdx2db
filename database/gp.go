@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "github.com/duckdb/duckdb-go/v2"
 	"github.com/jing2uo/tdx2db/tdx"
@@ -54,6 +55,16 @@ func ImportGpdata(db *sql.DB, rec []tdx.GpRecord) error {
 		}
 
 		key := record.ReportDate
+		if key == 0 && record.RecType == 10 {
+			now := time.Now()
+			key = uint32(now.Year()*10000) + uint32(now.Month()*100) + uint32(now.Day())
+			record.ReportDate = key
+		}
+
+		if key == 0 {
+			fmt.Printf("0day %v\n", record)
+			continue
+		}
 
 		if aggregated[key] == nil {
 			aggregated[key] = make(map[string]float32)
@@ -65,14 +76,16 @@ func ImportGpdata(db *sql.DB, rec []tdx.GpRecord) error {
 		}
 	}
 
-	keys := make([]uint32, 0, len(aggregated))
-	for k := range aggregated {
+	var keys []uint32
+	for k, _ := range aggregated {
 		keys = append(keys, k)
 	}
+	//fmt.Printf("keys:%v\n", keys)
 
 	sort.Slice(keys, func(i, j int) bool {
-		return i < j
+		return keys[i] < keys[j]
 	})
+	//fmt.Printf("keys:%v\n", keys)
 
 	for _, k := range keys {
 		row := make([]string, 0, len(gpColumnNames))
@@ -81,6 +94,7 @@ func ImportGpdata(db *sql.DB, rec []tdx.GpRecord) error {
 			row = append(row, t.Format("2006-01-02"))
 		} else {
 			row = append(row, "")
+			fmt.Printf("parse %d fail,err:%v\n", k, err)
 		}
 
 		values := aggregated[k]
