@@ -30,10 +30,15 @@ func Connect(cfg model.DBConfig) (*sql.DB, error) {
 type TableSchema struct {
 	Name    string
 	Columns []string
+	Keys    []string
 }
 
 func CreateTable(db *sql.DB, schema TableSchema) error {
 	columnsStr := strings.Join(schema.Columns, ", ")
+	if len(schema.Keys) > 0 {
+		kstr := strings.Join(schema.Keys, ", ")
+		columnsStr = columnsStr + ", " + kstr
+	}
 	query := fmt.Sprintf(`
 		CREATE TABLE IF NOT EXISTS %s (
 			%s
@@ -42,7 +47,7 @@ func CreateTable(db *sql.DB, schema TableSchema) error {
 
 	_, err := db.Exec(query)
 	if err != nil {
-		return fmt.Errorf("failed to create table %s: %w", schema.Name, err)
+		return fmt.Errorf("failed to create table %s: %w qry:%s", schema.Name, err, query)
 	}
 	return nil
 }
@@ -98,7 +103,7 @@ func ImportCSV(db *sql.DB, schema TableSchema, csvPath string) error {
 
 	_, err := db.Exec(query)
 	if err != nil {
-		return fmt.Errorf("failed to import CSV to %s: %w", schema.Name, err)
+		return fmt.Errorf("failed to import CSV to %s: %w %s", schema.Name, err, query)
 	}
 	return nil
 }

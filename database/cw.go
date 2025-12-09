@@ -16,6 +16,7 @@ import (
 var CaiwuSchema = TableSchema{
 	Name:    "raw_caiwu",
 	Columns: buildCaiwuColumns(),
+	Keys:    buildCwKeys(),
 }
 
 var caiwuColumnNames = buildCaiwuColumnNames()
@@ -129,6 +130,11 @@ func buildCaiwuColumns() []string {
 		columns = append(columns, fmt.Sprintf("%s DOUBLE /* %s */", column.name, comment))
 	}
 
+	return columns
+}
+
+func buildCwKeys() []string {
+	var columns []string
 	columns = append(columns, "PRIMARY KEY (code, report_date)")
 
 	return columns
