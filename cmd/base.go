@@ -29,23 +29,23 @@ func Base(dbPath, baseFileDir string) error {
 	if err != nil {
 		return err
 	}
-	/*
-		targetPath := filepath.Join(baseFileDir, "base.zip")
-		url := "https://www.tdx.com.cn/products/data/data/dbf/base.zip"
-		cmd := exec.Command("wget", "-O", targetPath, url)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("⚠️ wget 下载 %s 失败: %v\n", url, err)
-			return err
-		}
+	targetPath := filepath.Join(baseFileDir, "base.zip")
+	url := "https://www.tdx.com.cn/products/data/data/dbf/base.zip"
+	cmd := exec.Command("wget", "-O", targetPath, url)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-		fmt.Printf("✅ 已下载 %s %s\n", url, targetPath)
-		if err := utils.UnzipFile(targetPath, baseFileDir); err != nil {
-			return fmt.Errorf("failed to unzip file %s: %w", targetPath, err)
-		}
-	*/
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("⚠️ wget 下载 %s 失败: %v\n", url, err)
+		return err
+	}
+
+	fmt.Printf("✅ 已下载 %s %s\n", url, targetPath)
+	if err := utils.UnzipFile(targetPath, baseFileDir); err != nil {
+		return fmt.Errorf("failed to unzip file %s: %w", targetPath, err)
+	}
+
 	//read bloclcfg
 	cfgPath := filepath.Join(baseFileDir, "tdxzs3.cfg")
 	crecs, err := tdx.ReadBlockCfg(cfgPath)
@@ -152,7 +152,7 @@ func Base(dbPath, baseFileDir string) error {
 	/*
 		SELECT EXTRACT(YEAR FROM delist) AS y, COUNT(*) AS cnt FROM raw_delist GROUP BY y ORDER BY y;
 	*/
-	cmd := exec.Command("python", "delist.py")
+	cmd = exec.Command("python", "delist.py")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
