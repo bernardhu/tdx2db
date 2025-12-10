@@ -1,6 +1,6 @@
 import struct
 
-file_path = "./datatool/vipdoc/tdxgp/gpbj430017.dat"  # 换成你的实际路径
+file_path = "./datatool/vipdoc/tdxgp/gpsz000009.dat"  # 换成你的实际路径
 
 with open(file_path, "rb") as f:
     i = 0

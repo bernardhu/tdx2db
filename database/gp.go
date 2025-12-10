@@ -23,6 +23,18 @@ var GpSchema = TableSchema{
 	Keys:    buildGpKeys(),
 }
 
+func fixDate(raw uint32) (uint32, bool) {
+	if raw < 205000 && raw > 190000 { //yyyymm
+		return raw*100 + 1, true
+	}
+
+	if raw > 19000000 {
+		return raw, false
+	}
+
+	return raw, false
+}
+
 func ImportGpdata(db *sql.DB, rec []tdx.GpRecord) error {
 	if err := CreateTable(db, GpSchema); err != nil {
 		return fmt.Errorf("failed to create financial table: %w", err)
@@ -61,8 +73,14 @@ func ImportGpdata(db *sql.DB, rec []tdx.GpRecord) error {
 			record.ReportDate = key
 		}
 
+		fixday, fix := fixDate(record.ReportDate)
+		if fix {
+			fmt.Printf("fixday form %d to %d %v\n", record.ReportDate, fixday, record)
+			record.ReportDate = fixday
+			key = fixday
+		}
 		if key == 0 {
-			fmt.Printf("0day %v\n", record)
+			fmt.Printf("0day skip %v\n", record)
 			continue
 		}
 
