@@ -14,8 +14,13 @@ import (
 	"github.com/jing2uo/tdx2db/tdx"
 )
 
-var gpColumnNames = buildColumnNames(gpbase)
-var gpColumnLookup = buildColumnLookup(gpbase)
+var (
+	gpColumnNames        = buildColumnNames(gpbase)
+	gpColumnLookup       = buildColumnLookup(gpbase)
+	gpUpdateAssignments  = buildGpUpdateAssignments()
+	gpReadCSVColumnDef   = buildGpReadCSVColumnDef()
+	gpPrimaryKeyConflict = "code, mkt, rdate"
+)
 
 var GpSchema = TableSchema{
 	Name:    "raw_gp_base",
@@ -139,8 +144,27 @@ func ImportGpdata(db *sql.DB, rec []tdx.GpRecord) error {
 	}
 
 	csvPath := strings.ReplaceAll(tmpFile.Name(), "'", "''")
-	if err := ImportCSV(db, GpSchema, csvPath); err != nil {
-		return fmt.Errorf("failed to import gp csv: %w", err)
+	tempTable := fmt.Sprintf("tmp_gp_base_%d", time.Now().UnixNano())
+
+	createTemp := fmt.Sprintf(`
+		CREATE TEMP TABLE %s AS
+		SELECT * FROM read_csv('%s', HEADER=TRUE, columns=%s, nullstr='')
+	`, tempTable, csvPath, gpReadCSVColumnDef)
+
+	if _, err := db.Exec(createTemp); err != nil {
+		return fmt.Errorf("failed to load temp gp data: %w", err)
+	}
+	defer db.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s", tempTable))
+
+	columnsList := strings.Join(gpColumnNames, ", ")
+	insertSQL := fmt.Sprintf(`
+		INSERT INTO %s (%s)
+		SELECT %s FROM %s
+		ON CONFLICT (%s) DO UPDATE SET %s
+	`, GpSchema.Name, columnsList, columnsList, tempTable, gpPrimaryKeyConflict, strings.Join(gpUpdateAssignments, ", "))
+
+	if _, err := db.Exec(insertSQL); err != nil {
+		return fmt.Errorf("failed to merge gp data: %w", err)
 	}
 
 	return nil
@@ -195,4 +219,27 @@ func buildColumnLookup(descs []gpColumnDesc) map[byte]gpColumnDesc {
 		res[desc.typ] = desc
 	}
 	return res
+}
+
+func buildGpUpdateAssignments() []string {
+	assignments := make([]string, 0, len(gpColumnNames)-3)
+	for _, col := range gpColumnNames[3:] {
+		assignments = append(assignments, fmt.Sprintf("%s=excluded.%s", col, col))
+	}
+	return assignments
+}
+
+func buildGpReadCSVColumnDef() string {
+	var builder strings.Builder
+	builder.WriteString("{'code': 'VARCHAR', 'mkt': 'VARCHAR', 'rdate': 'DATE'")
+	for _, column := range gpbase {
+		builder.WriteString(", ")
+		builder.WriteString(fmt.Sprintf("'%s': 'DOUBLE'", column.name0))
+		if column.name1 != "" {
+			builder.WriteString(", ")
+			builder.WriteString(fmt.Sprintf("'%s': 'DOUBLE'", column.name1))
+		}
+	}
+	builder.WriteString("}")
+	return builder.String()
 }
