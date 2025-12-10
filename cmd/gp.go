@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -196,19 +198,19 @@ func Gp(dbPath, gpFileDir string) error {
 
 	for _, v := range updatedFiles {
 		targetPath := filepath.Join(gpFileDir, v)
-		/*
-			url := fmt.Sprintf("https://data.tdx.com.cn/tdxgp/%s", v)
-			cmd := exec.Command("wget", "-O", targetPath, url)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
 
-			if err := cmd.Run(); err != nil {
-				fmt.Printf("⚠️ wget 下载 %s 失败: %v\n", url, err)
-				continue
-			}
+		url := fmt.Sprintf("https://data.tdx.com.cn/tdxgp/%s", v)
+		cmd := exec.Command("wget", "-O", targetPath, url)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 
-			fmt.Printf("✅ 已下载 %s %s\n", url, targetPath)
-		*/
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("⚠️ wget 下载 %s 失败: %v\n", url, err)
+			continue
+		}
+
+		fmt.Printf("✅ 已下载 %s %s\n", url, targetPath)
+
 		mkt, code, res := parseFileName(v)
 		typ := res
 		if res == "ashare" {

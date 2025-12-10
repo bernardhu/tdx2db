@@ -37,6 +37,8 @@ rm -rf ./datatool/vipdoc/refmhq/*
 #docker run -it -v $CUR/datatool:/datatool -w /datatool alpine:3.19 ./datatool min create $Year$i
 
 ./tdx2db cw --cwpath datatool/vipdoc/tdxfin --dbpath tdx.db
+./tdx2db base --basepath datatool/vipdoc/base --dbpath tdx.db 
+./tdx2db gp --gppath datatool/vipdoc/tdxgp --dbpath tdx.db 
 else
     echo  $SYSTEM
 fi
