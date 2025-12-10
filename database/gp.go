@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	gpColumnNames        = buildColumnNames(gpbase)
+	gpColumnNames        = buildColumnNames([]string{"code", "mkt", "rdate"}, gpbase)
 	gpColumnLookup       = buildColumnLookup(gpbase)
-	gpUpdateAssignments  = buildGpUpdateAssignments()
+	gpUpdateAssignments  = buildUpdateAssignments(gpColumnNames[3:])
 	gpReadCSVColumnDef   = buildGpReadCSVColumnDef()
 	gpPrimaryKeyConflict = "code, mkt, rdate"
 )
@@ -170,14 +170,6 @@ func ImportGpdata(db *sql.DB, rec []tdx.GpRecord) error {
 	return nil
 }
 
-func ImportBlkdata(db *sql.DB, rec []tdx.GpRecord) error {
-	return nil
-}
-
-func ImportMktdata(db *sql.DB, rec []tdx.GpRecord) error {
-	return nil
-}
-
 func buildColumns(descs []gpColumnDesc) []string {
 	columns := []string{
 		"code VARCHAR",
@@ -202,8 +194,9 @@ func buildGpKeys() []string {
 	return columns
 }
 
-func buildColumnNames(descs []gpColumnDesc) []string {
-	columns := []string{"code", "mkt", "rdate"}
+func buildColumnNames(header []string, descs []gpColumnDesc) []string {
+	var columns []string
+	columns = append(columns, header...)
 	for _, column := range descs {
 		columns = append(columns, column.name0)
 		if column.name1 != "" {
@@ -221,9 +214,9 @@ func buildColumnLookup(descs []gpColumnDesc) map[byte]gpColumnDesc {
 	return res
 }
 
-func buildGpUpdateAssignments() []string {
-	assignments := make([]string, 0, len(gpColumnNames)-3)
-	for _, col := range gpColumnNames[3:] {
+func buildUpdateAssignments(fields []string) []string {
+	assignments := make([]string, 0, len(fields))
+	for _, col := range fields {
 		assignments = append(assignments, fmt.Sprintf("%s=excluded.%s", col, col))
 	}
 	return assignments

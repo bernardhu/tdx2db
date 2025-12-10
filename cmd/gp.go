@@ -25,6 +25,9 @@ func parseCode(mkt, code string) string {
 		first := icode / 100000
 		sec := icode / 1000
 		if first == 9 {
+			if sec == 999 {
+				return "mkt"
+			}
 			return "bshare"
 		} else if first == 6 {
 			return "ashare"
@@ -51,9 +54,7 @@ func parseCode(mkt, code string) string {
 			if sec == 880 || sec == 881 {
 				return "tdx"
 			}
-			if sec == 999 {
-				return "mkt"
-			}
+
 			return "bond"
 		}
 	case "sz": //http://www.szse.cn/marketServices/technicalservice/doc/

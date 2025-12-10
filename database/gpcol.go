@@ -103,7 +103,7 @@ var gpbase = []gpColumnDesc{
 39--涨跌5%家数  涨幅大于等于5%家数  跌幅大于等于5%家数
 40--陆股通成交  陆股通成交总额(亿元) 陆股通成交总笔(万笔)
 */
-var scbase = []gpColumnDesc{
+var mktbase = []gpColumnDesc{
 	{typ: 1, name0: "f10", desc0: "沪深京融资余额(万元)", name1: "f11", desc1: "沪深京融券余额(万元)"},
 	{typ: 2, name0: "f20", desc0: "沪股通流入金额(亿元)", name1: "f21", desc1: "深股通流入金额(亿元)"},
 	{typ: 3, name0: "f30", desc0: "涨停股个数", name1: "f31", desc1: "曾涨停股个数"},
@@ -165,7 +165,7 @@ var scbase = []gpColumnDesc{
 18--板块股息率(%)   算数平均  整体法
 19--板块自由流通市值（亿元）  整体法  算术平均
 */
-var bkbase = []gpColumnDesc{
+var blkbase = []gpColumnDesc{
 	{typ: 5, name0: "f50", desc0: "市盈率TTM(整体法)", name1: "f51", desc1: "市盈率TTM(算术平均)"},
 	{typ: 6, name0: "f60", desc0: "市净率MRQ(整体法)", name1: "f61", desc1: "市净率MRQ(算术平均)"},
 	{typ: 7, name0: "f70", desc0: "市销率TTM(整体法)", name1: "f71", desc1: "市销率TTM(算术平均)"},
