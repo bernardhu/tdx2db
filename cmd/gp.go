@@ -241,5 +241,18 @@ func Gp(dbPath, gpFileDir string) error {
 
 	}
 
+	fmt.Printf("开始创建视图\n")
+	err = database.CreateGpViews(db)
+	if err != nil {
+		fmt.Printf("创建视图失败 err: %v\n", err)
+	}
+	err = database.CreateMktViews(db)
+	if err != nil {
+		fmt.Printf("创建视图失败 err: %v\n", err)
+	}
+	err = database.CreateBlkViews(db)
+	if err != nil {
+		fmt.Printf("创建视图失败 err: %v\n", err)
+	}
 	return nil
 }

@@ -1,0 +1,151 @@
+package database
+
+import "database/sql"
+
+var mktViews = []ColumnViews{
+	{
+		name: "v_mkt_leverage_pledge",
+		from: "raw_gp_mkt",
+		desc: "市场层面的杠杆、质押与转融券风险",
+		fields: []ColumnView{
+			{name: "mkt"},
+			{name: "rdate"},
+			{name: "f10", alias: "mrg_balance_all", desc: "沪深京融资余额(万元)"},
+			{name: "f11", alias: "short_balance_all", desc: "沪深京融券余额(万元)"},
+			{name: "f250", alias: "mrg_buy_amt_all", desc: "沪深京融资买入额(万元)"},
+			{name: "f251", alias: "short_sell_qty_all", desc: "沪深京融券卖出量(万股)"},
+			{name: "f210", alias: "pledge_unrestr_sz", desc: "深市无限售质押率(%)"},
+			{name: "f211", alias: "pledge_unrestr_sh", desc: "沪市无限售质押率(%)"},
+			{name: "f220", alias: "pledge_restr_sz", desc: "深市有限售质押率(%)"},
+			{name: "f221", alias: "pledge_restr_sh", desc: "沪市有限售质押率(%)"},
+			{name: "f260", alias: "pledge_ratio_mkt_week", desc: "每周市场质押比例(%)"},
+			{name: "f370", alias: "trsb_lent_value_mkt", desc: "转融券融出市值(亿元)"},
+			{name: "f371", alias: "trsb_end_balance_mkt", desc: "转融券期末余额(亿元)"},
+		},
+	},
+	{
+		name: "v_mkt_index_futures",
+		from: "raw_gp_mkt",
+		desc: "股指期货仓位视图",
+		fields: []ColumnView{
+			{name: "mkt"},
+			{name: "rdate"},
+			{name: "f50", alias: "if50_net_pos", desc: "上证50股指期货净持仓(手)"},
+			{name: "f60", alias: "ih300_net_pos", desc: "沪深300股指期货净持仓(手)"},
+			{name: "f70", alias: "ic500_net_pos", desc: "中证500股指期货净持仓(手)"},
+		},
+	},
+	{
+		name: "v_mkt_north_etf_liquidity",
+		from: "raw_gp_mkt",
+		desc: "北向、ETF 与宏观流动性",
+		fields: []ColumnView{
+			{name: "mkt"},
+			{name: "rdate"},
+			{name: "f20", alias: "sh_hk_inflow", desc: "沪股通流入金额(亿元)"},
+			{name: "f21", alias: "sz_hk_inflow", desc: "深股通流入金额(亿元)"},
+			{name: "f200", alias: "sh_hk_net_buy", desc: "沪股通净买入额(亿元)"},
+			{name: "f201", alias: "sz_hk_net_buy", desc: "深股通净买入额(亿元)"},
+			{name: "f400", alias: "north_total_turnover", desc: "陆股通成交总额(亿元)"},
+			{name: "f401", alias: "north_total_trades", desc: "陆股通成交总笔(万笔)"},
+			{name: "f270", alias: "omo_net_injection", desc: "央行公开市场净投放(亿元)"},
+			{name: "f80", alias: "etf_size_units", desc: "ETF基金规模(亿份)"},
+			{name: "f81", alias: "etf_net_create_units", desc: "ETF净申赎(亿份)"},
+			{name: "f380", alias: "etf_size_value", desc: "ETF基金规模(亿元)"},
+			{name: "f381", alias: "etf_net_create_value", desc: "ETF净申赎(亿元)"},
+		},
+	},
+	{
+		name: "v_mkt_lhb_all",
+		from: "raw_gp_mkt",
+		desc: "龙虎榜市场资金结构",
+		fields: []ColumnView{
+			{name: "mkt"},
+			{name: "rdate"},
+			{name: "f160", alias: "lhb_total_buy", desc: "龙虎榜买入总金额(亿元)"},
+			{name: "f161", alias: "lhb_total_sell", desc: "龙虎榜卖出总金额(亿元)"},
+			{name: "f170", alias: "lhb_inst_buy", desc: "龙虎榜机构买入金额(亿元)"},
+			{name: "f171", alias: "lhb_inst_sell", desc: "龙虎榜机构卖出金额(亿元)"},
+			{name: "f180", alias: "lhb_broker_buy", desc: "龙虎榜营业部买入金额(亿元)"},
+			{name: "f181", alias: "lhb_broker_sell", desc: "龙虎榜营业部卖出金额(亿元)"},
+			{name: "f190", alias: "lhb_north_buy", desc: "龙虎榜沪深股通买入金额(亿元)"},
+			{name: "f191", alias: "lhb_north_sell", desc: "龙虎榜沪深股通卖出金额(亿元)"},
+		},
+	},
+	{
+		name: "v_mkt_sentiment_boards",
+		from: "raw_gp_mkt",
+		desc: "涨跌停/连板情绪视图",
+		fields: []ColumnView{
+			{name: "mkt"},
+			{name: "rdate"},
+			{name: "f30", alias: "up_limit_cnt", desc: "涨停股个数"},
+			{name: "f31", alias: "ever_up_limit_cnt", desc: "曾涨停股个数"},
+			{name: "f40", alias: "down_limit_cnt", desc: "跌停股个数"},
+			{name: "f41", alias: "ever_down_limit_cnt", desc: "曾跌停股个数"},
+			{name: "f230", alias: "cons_limit_cnt_with_st", desc: "连板股个数(含ST/未开板新股)"},
+			{name: "f231", alias: "cons_limit_cnt_no_st", desc: "连板股个数(不含ST/未开板新股)"},
+			{name: "f240", alias: "up_limit_cnt_no_st", desc: "涨停股个数(不含ST/未开板新股)"},
+			{name: "f241", alias: "down_limit_cnt_no_st", desc: "跌停股个数(不含ST股)"},
+			{name: "f360", alias: "ever_up_limit_cnt_ex_st", desc: "曾涨停股个数(剔除ST/未开板新股)"},
+			{name: "f361", alias: "ever_down_limit_cnt_ex_st", desc: "曾跌停股个数(剔除ST股)"},
+			{name: "f300", alias: "mkt_height_no_st", desc: "市场高度(不含ST/未开板新股)"},
+			{name: "f301", alias: "up_limit_ge2_cnt_no_st", desc: "2板以上涨停个数(不含ST/未开板新股)"},
+			{name: "f150", alias: "hit_board_success_cap", desc: "打板资金封板成功资金(亿元)"},
+			{name: "f151", alias: "hit_board_fail_cap", desc: "打板资金封板失败资金(亿元)"},
+			{name: "f330", alias: "up_limit_order_cap", desc: "涨停封单金额(亿元)"},
+			{name: "f331", alias: "down_limit_order_cap", desc: "跌停封单金额(亿元)"},
+			{name: "f350", alias: "turnover_board_cnt", desc: "换手板家数"},
+			{name: "f351", alias: "re_seal_rate", desc: "回封率(%)"},
+			{name: "f390", alias: "up_ge5pct_cnt", desc: "涨幅≥5%家数"},
+			{name: "f391", alias: "down_ge5pct_cnt", desc: "跌幅≥5%家数"},
+		},
+	},
+	{
+		name: "v_mkt_breadth_momentum",
+		from: "raw_gp_mkt",
+		desc: "市场宽度与动能",
+		fields: []ColumnView{
+			{name: "mkt"},
+			{name: "rdate"},
+			{name: "f280", alias: "his_high_cnt", desc: "历史新高股票个数"},
+			{name: "f281", alias: "his_low_cnt", desc: "历史新低股票个数"},
+			{name: "f290", alias: "high_120d_cnt", desc: "120天新高股票个数"},
+			{name: "f291", alias: "low_120d_cnt", desc: "120天新低股票个数"},
+			{name: "f320", alias: "high_20d_cnt", desc: "20天新高股票个数"},
+			{name: "f321", alias: "low_20d_cnt", desc: "20天新低股票个数"},
+			{name: "f310", alias: "adv_cnt", desc: "涨家数(剔除停牌)"},
+			{name: "f311", alias: "dcl_cnt", desc: "跌家数(剔除停牌)"},
+			{name: "f340", alias: "adv_volume", desc: "上涨股成交量(万手)"},
+			{name: "f341", alias: "dcl_volume", desc: "下跌股成交量(万手)"},
+		},
+	},
+	{
+		name: "v_mkt_participants_corp",
+		from: "raw_gp_mkt",
+		desc: "投资者结构与公司行为",
+		fields: []ColumnView{
+			{name: "mkt"},
+			{name: "rdate"},
+			{name: "f90", alias: "new_individual_inv", desc: "新增自然人数量(户)"},
+			{name: "f91", alias: "new_non_indiv_inv", desc: "新增非自然人数量(户)"},
+			{name: "f100", alias: "inc_amount_mkt", desc: "增持额(万元)"},
+			{name: "f101", alias: "dec_amount_mkt", desc: "减持额(万元)"},
+			{name: "f110", alias: "block_premium_amt", desc: "溢价大宗成交额(万元)"},
+			{name: "f111", alias: "block_discount_amt", desc: "折价大宗成交额(万元)"},
+			{name: "f120", alias: "unlock_plan_amt", desc: "限售解禁计划额(亿元)"},
+			{name: "f121", alias: "unlock_actual_amt", desc: "限售解禁实际上市额(亿元)"},
+			{name: "f130", alias: "total_dividend_amt", desc: "市场总分红额(亿元)"},
+			{name: "f140", alias: "total_fundraising_amt", desc: "市场总募资额(亿元)"},
+		},
+	},
+}
+
+func CreateMktViews(db *sql.DB) error {
+	for _, view := range mktViews {
+		if err := createView(db, view); err != nil {
+			return err
+		}
+	}
+	return nil
+}
