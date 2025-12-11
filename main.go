@@ -26,6 +26,7 @@ func main() {
 	}
 
 	var dbPath, dayFileDir, minline, workdayPath, workdayYear, cwdayPath, gpdayPath, basePath string
+	var download bool
 	var (
 		m1FileDir   string
 		m5FileDir   string
@@ -89,7 +90,7 @@ func main() {
 		Use:   "gp",
 		Short: "Cron for update gupiao",
 		RunE: func(c *cobra.Command, args []string) error {
-			if err := cmd.Gp(dbPath, gpdayPath); err != nil {
+			if err := cmd.Gp(dbPath, gpdayPath, download); err != nil {
 				return err
 			}
 			return nil
@@ -199,6 +200,7 @@ func main() {
 
 	gpCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
 	gpCmd.Flags().StringVar(&gpdayPath, "gppath", "", "通达信股票文件路径")
+	gpCmd.Flags().BoolVar(&download, "dl", true, "是否需要逐个下载")
 	gpCmd.MarkFlagRequired("dbpath")
 	gpCmd.MarkFlagRequired("gppath")
 
