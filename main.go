@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/jing2uo/tdx2db/cmd"
 	"github.com/spf13/cobra"
@@ -26,7 +27,7 @@ func main() {
 	}
 
 	var dbPath, dayFileDir, minline, workdayPath, workdayYear, cwdayPath, gpdayPath, basePath string
-	var cwdl, gpdl bool
+	var cwdlFlag, gpdlFlag string
 	var (
 		m1FileDir   string
 		m5FileDir   string
@@ -79,6 +80,10 @@ func main() {
 		Use:   "cw",
 		Short: "Cron for update caiwu",
 		RunE: func(c *cobra.Command, args []string) error {
+			cwdl, err := strconv.ParseBool(cwdlFlag)
+			if err != nil {
+				return fmt.Errorf("--cwdl 需要 true/false，当前为 %q: %w", cwdlFlag, err)
+			}
 			if err := cmd.Cw(dbPath, cwdayPath, cwdl); err != nil {
 				return err
 			}
@@ -90,6 +95,10 @@ func main() {
 		Use:   "gp",
 		Short: "Cron for update gupiao",
 		RunE: func(c *cobra.Command, args []string) error {
+			gpdl, err := strconv.ParseBool(gpdlFlag)
+			if err != nil {
+				return fmt.Errorf("--gpdl 需要 true/false，当前为 %q: %w", gpdlFlag, err)
+			}
 			if err := cmd.Gp(dbPath, gpdayPath, gpdl); err != nil {
 				return err
 			}
@@ -190,10 +199,9 @@ func main() {
 
 	cwCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
 	cwCmd.Flags().StringVar(&cwdayPath, "cwpath", "", "通达信财务文件路径")
-	cwCmd.Flags().BoolVar(&cwdl, "cwdl", true, "是否需要逐个下载")
+	cwCmd.Flags().StringVar(&cwdlFlag, "cwdl", "true", "是否需要逐个下载 (true/false)")
 	cwCmd.MarkFlagRequired("dbpath")
 	cwCmd.MarkFlagRequired("cwpath")
-	cwCmd.MarkFlagRequired("cwdl")
 
 	baseCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
 	baseCmd.Flags().StringVar(&basePath, "basepath", "", "通达信base文件路径")
@@ -202,10 +210,9 @@ func main() {
 
 	gpCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
 	gpCmd.Flags().StringVar(&gpdayPath, "gppath", "", "通达信股票文件路径")
-	gpCmd.Flags().BoolVar(&gpdl, "gpdl", true, "是否需要逐个下载")
+	gpCmd.Flags().StringVar(&gpdlFlag, "gpdl", "true", "是否需要逐个下载 (true/false)")
 	gpCmd.MarkFlagRequired("dbpath")
 	gpCmd.MarkFlagRequired("gppath")
-	gpCmd.MarkFlagRequired("gpdl")
 
 	convertCmd.Flags().StringVar(&dayFileDir, "dayfiledir", "", dayFileInfo)
 	convertCmd.Flags().StringVar(&m1FileDir, "m1filedir", "", "通达信 1 分钟 .01 文件目录")

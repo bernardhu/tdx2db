@@ -71,9 +71,9 @@ docker run -it -v /Users/huguanrui/go/src/github.com/tdx/tdx2db/datatool:/datato
 ./tdx2db workday --wdyear 2024 --wdpath datatool/vipdoc/exceptday --dbpath tdx.db
 ./tdx2db workday --wdyear 2025 --wdpath datatool/vipdoc/exceptday --dbpath tdx.db
 
-./tdx2db cw --cwpath datatool/vipdoc/tdxfin --cwdl false --dbpath tdx.db
+./tdx2db cw --cwpath datatool/vipdoc/tdxfin --cwdl false --dbpath tdx.db > cw.log
 
-./tdx2db gp --gppath datatool/vipdoc/tdxgp --gpdl false --dbpath tdx.db
+./tdx2db gp --gppath datatool/vipdoc/tdxgp --gpdl false --dbpath tdx.db > gp.log
 
 股票数据包
 mkdir -p ./datatool/vipdoc/tdxgp

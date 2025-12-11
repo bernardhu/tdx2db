@@ -108,7 +108,9 @@ func Cw(dbPath, cwFileDir string, download bool) error {
 	}
 
 	err = database.CreateCwViews(db)
-	if err == nil {
+	if err != nil {
+		fmt.Printf("❌ 更新财务视图失败%v\n", err)
+	} else {
 		fmt.Print("✅ 已更新财务视图\n")
 	}
 
