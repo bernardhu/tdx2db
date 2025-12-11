@@ -17,7 +17,7 @@ import (
 	"github.com/jing2uo/tdx2db/utils"
 )
 
-func Cw(dbPath, cwFileDir string) error {
+func Cw(dbPath, cwFileDir string, download bool) error {
 	if dbPath == "" {
 		return fmt.Errorf("database path cannot be empty")
 	}
@@ -69,24 +69,26 @@ func Cw(dbPath, cwFileDir string) error {
 	}
 
 	sort.Strings(updatedFiles)
-	fmt.Printf("🌟 发现 %d 个新的财务文件: %v oldhash:%v newhash:%v\n", len(updatedFiles), updatedFiles, olds, news)
+	fmt.Printf("🌟 发现 %d 个新的财务文件: %v oldhash:%v newhash:%v download:%v\n", len(updatedFiles), updatedFiles, olds, news, download)
 
 	for _, v := range updatedFiles {
-		url := fmt.Sprintf("https://data.tdx.com.cn/tdxfin/%s", v)
 		targetPath := filepath.Join(cwFileDir, v)
 
-		cmd := exec.Command("wget", "-O", targetPath, url)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		if download {
+			url := fmt.Sprintf("https://data.tdx.com.cn/tdxfin/%s", v)
+			cmd := exec.Command("wget", "-O", targetPath, url)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
 
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("⚠️ wget 下载 %s 失败: %v\n", url, err)
-			continue
-		}
+			if err := cmd.Run(); err != nil {
+				fmt.Printf("⚠️ wget 下载 %s 失败: %v\n", url, err)
+				continue
+			}
 
-		fmt.Printf("✅ 已下载 %s %s\n", url, targetPath)
-		if err := utils.UnzipFile(targetPath, cwFileDir); err != nil {
-			return fmt.Errorf("failed to unzip file %s: %w", targetPath, err)
+			fmt.Printf("✅ 已下载 %s %s\n", url, targetPath)
+			if err := utils.UnzipFile(targetPath, cwFileDir); err != nil {
+				return fmt.Errorf("failed to unzip file %s: %w", targetPath, err)
+			}
 		}
 
 		dataPath := strings.ReplaceAll(targetPath, "zip", "dat")
@@ -105,17 +107,9 @@ func Cw(dbPath, cwFileDir string) error {
 
 	}
 
-	err = database.CreateXjllbView(db)
+	err = database.CreateCwViews(db)
 	if err == nil {
-		fmt.Print("✅ 已更新现金流量表视图\n")
-	}
-	err = database.CreateLrbView(db)
-	if err == nil {
-		fmt.Print("✅ 已更新利润表视图\n")
-	}
-	err = database.CreateZcfzbView(db)
-	if err == nil {
-		fmt.Print("✅ 已更新资产负债表视图\n")
+		fmt.Print("✅ 已更新财务视图\n")
 	}
 
 	return nil

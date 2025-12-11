@@ -26,7 +26,7 @@ func main() {
 	}
 
 	var dbPath, dayFileDir, minline, workdayPath, workdayYear, cwdayPath, gpdayPath, basePath string
-	var download bool
+	var cwdl, gpdl bool
 	var (
 		m1FileDir   string
 		m5FileDir   string
@@ -79,7 +79,7 @@ func main() {
 		Use:   "cw",
 		Short: "Cron for update caiwu",
 		RunE: func(c *cobra.Command, args []string) error {
-			if err := cmd.Cw(dbPath, cwdayPath); err != nil {
+			if err := cmd.Cw(dbPath, cwdayPath, cwdl); err != nil {
 				return err
 			}
 			return nil
@@ -90,7 +90,7 @@ func main() {
 		Use:   "gp",
 		Short: "Cron for update gupiao",
 		RunE: func(c *cobra.Command, args []string) error {
-			if err := cmd.Gp(dbPath, gpdayPath, download); err != nil {
+			if err := cmd.Gp(dbPath, gpdayPath, gpdl); err != nil {
 				return err
 			}
 			return nil
@@ -190,8 +190,10 @@ func main() {
 
 	cwCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
 	cwCmd.Flags().StringVar(&cwdayPath, "cwpath", "", "通达信财务文件路径")
+	cwCmd.Flags().BoolVar(&cwdl, "cwdl", true, "是否需要逐个下载")
 	cwCmd.MarkFlagRequired("dbpath")
 	cwCmd.MarkFlagRequired("cwpath")
+	cwCmd.MarkFlagRequired("cwdl")
 
 	baseCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
 	baseCmd.Flags().StringVar(&basePath, "basepath", "", "通达信base文件路径")
@@ -200,9 +202,10 @@ func main() {
 
 	gpCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
 	gpCmd.Flags().StringVar(&gpdayPath, "gppath", "", "通达信股票文件路径")
-	gpCmd.Flags().BoolVar(&download, "dl", true, "是否需要逐个下载")
+	gpCmd.Flags().BoolVar(&gpdl, "gpdl", true, "是否需要逐个下载")
 	gpCmd.MarkFlagRequired("dbpath")
 	gpCmd.MarkFlagRequired("gppath")
+	gpCmd.MarkFlagRequired("gpdl")
 
 	convertCmd.Flags().StringVar(&dayFileDir, "dayfiledir", "", dayFileInfo)
 	convertCmd.Flags().StringVar(&m1FileDir, "m1filedir", "", "通达信 1 分钟 .01 文件目录")

@@ -23,22 +23,6 @@ var caiwuColumnNames = buildCaiwuColumnNames()
 var caiwuUpdateAssignments = buildCaiwuUpdateAssignments()
 var caiwuReadCSVColumnDef = buildCaiwuReadCSVColumnDef()
 
-var XjllbViewName = "v_xjllb_cw"
-var ZcfzbViewName = "v_zcfzb_cw"
-var LrbViewName = "v_lrb_cw"
-
-func CreateXjllbView(db *sql.DB) error {
-	return createCwView(db, XjllbViewName, xjllb)
-}
-
-func CreateZcfzbView(db *sql.DB) error {
-	return createCwView(db, ZcfzbViewName, zcfzb)
-}
-
-func CreateLrbView(db *sql.DB) error {
-	return createCwView(db, LrbViewName, lrb)
-}
-
 func ImportCaiwu(db *sql.DB, rec []tdx.CWRecord) error {
 	if err := CreateTable(db, CaiwuSchema); err != nil {
 		return fmt.Errorf("failed to create financial table: %w", err)
@@ -163,35 +147,6 @@ func parseReportDate(raw uint32) (time.Time, error) {
 
 	dateStr := fmt.Sprintf("%08d", raw)
 	return time.Parse("20060102", dateStr)
-}
-
-func createCwView(db *sql.DB, viewName string, fields []cwRefDesc) error {
-	selectColumns := []string{
-		"code",
-		"report_date",
-	}
-
-	for _, field := range fields {
-		if field.idx < 0 {
-			continue
-		}
-
-		columnName := fmt.Sprintf("f%d", field.idx)
-		comment := strings.ReplaceAll(field.desc, "*/", "")
-		selectColumns = append(selectColumns, fmt.Sprintf("%s /* %s */", columnName, comment))
-	}
-
-	query := fmt.Sprintf(`
-		CREATE OR REPLACE VIEW %s AS
-		SELECT %s
-		FROM %s;
-	`, viewName, strings.Join(selectColumns, ", \n\t\t"), CaiwuSchema.Name)
-
-	if _, err := db.Exec(query); err != nil {
-		return fmt.Errorf("failed to create or replace view %s: %w", viewName, err)
-	}
-
-	return nil
 }
 
 func buildCaiwuReadCSVColumnDef() string {
