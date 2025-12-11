@@ -53,6 +53,12 @@ func ImportCaiwu(db *sql.DB, rec []tdx.CWRecord) error {
 			row = append(row, "")
 		}
 
+		if t, err := parseAnnounceDate(record.AnnounceDate); err == nil {
+			row = append(row, t.Format("2006-01-02"))
+		} else {
+			row = append(row, "")
+		}
+
 		for _, column := range cwbase {
 			if int(column.idx) < len(record.Values) {
 				row = append(row, strconv.FormatFloat(float64(record.Values[column.idx]), 'f', -1, 32))
@@ -107,6 +113,7 @@ func buildCaiwuColumns() []string {
 	columns := []string{
 		"code VARCHAR",
 		"report_date DATE",
+		"announce_date DATE",
 	}
 
 	for _, column := range cwbase {
@@ -125,7 +132,7 @@ func buildCwKeys() []string {
 }
 
 func buildCaiwuColumnNames() []string {
-	columns := []string{"code", "report_date"}
+	columns := []string{"code", "report_date", "announce_date"}
 	for _, column := range cwbase {
 		columns = append(columns, column.name)
 	}
@@ -149,10 +156,21 @@ func parseReportDate(raw uint32) (time.Time, error) {
 	return time.Parse("20060102", dateStr)
 }
 
+func parseAnnounceDate(raw uint32) (time.Time, error) {
+	if raw < 500000 { //yymmdd
+		raw = raw + 20000000
+	} else {
+		raw = raw + 19000000
+	}
+
+	dateStr := fmt.Sprintf("%08d", raw)
+	return time.Parse("20060102", dateStr)
+}
+
 func buildCaiwuReadCSVColumnDef() string {
 	var builder strings.Builder
 	builder.WriteString("{")
-	builder.WriteString("'code': 'VARCHAR', 'report_date': 'DATE'")
+	builder.WriteString("'code': 'VARCHAR', 'report_date': 'DATE', 'announce_date': 'DATE'")
 	for _, column := range cwbase {
 		builder.WriteString(", ")
 		builder.WriteString(fmt.Sprintf("'%s': 'DOUBLE'", column.name))

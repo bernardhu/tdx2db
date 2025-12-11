@@ -10,6 +10,7 @@ var cwViews = []ColumnViews{
 		fields: []ColumnView{
 			{name: "code", desc: "证券代码"},
 			{name: "report_date", alias: "rdate", desc: "报告期"},
+			{name: "announce_date", alias: "adate", desc: "公告日期"},
 			{name: "f0", alias: "eps_basic", desc: "基本每股收益"},
 			{name: "f1", alias: "eps_basic_excl_extra", desc: "扣除非经常性损益每股收益"},
 			{name: "f2", alias: "retained_earnings_ps", desc: "每股未分配利润"},
@@ -203,6 +204,7 @@ var cwViews = []ColumnViews{
 		fields: []ColumnView{
 			{name: "code", desc: "证券代码"},
 			{name: "report_date", alias: "rdate", desc: "报告期"},
+			{name: "announce_date", alias: "adate", desc: "公告日期"},
 			{name: "f158", alias: "current_ratio", desc: "流动比率"},
 			{name: "f159", alias: "quick_ratio", desc: "速动比率"},
 			{name: "f160", alias: "cash_ratio", desc: "现金比率(%)"},
@@ -275,6 +277,7 @@ var cwViews = []ColumnViews{
 		fields: []ColumnView{
 			{name: "code", desc: "证券代码"},
 			{name: "report_date", alias: "rdate", desc: "报告期"},
+			{name: "announce_date", alias: "adate", desc: "公告日期"},
 			{name: "f218", alias: "operating_cf_per_share", desc: "每股经营性现金流(元)"},
 			{name: "f219", alias: "cash_content_of_revenue", desc: "营业收入现金含量(%)"},
 			{name: "f220", alias: "ocf_to_operating_profit_ratio", desc: "经营现金净额/经营净收益(%)"},
@@ -301,6 +304,7 @@ var cwViews = []ColumnViews{
 		fields: []ColumnView{
 			{name: "code", desc: "证券代码"},
 			{name: "report_date", alias: "rdate", desc: "报告期"},
+			{name: "announce_date", alias: "adate", desc: "公告日期"},
 			{name: "f237", alias: "total_shares", desc: "总股本"},
 			{name: "f238", alias: "float_a_shares", desc: "已上市流通A股"},
 			{name: "f239", alias: "float_b_shares", desc: "已上市流通B股"},
@@ -352,6 +356,7 @@ var cwViews = []ColumnViews{
 		fields: []ColumnView{
 			{name: "code", desc: "证券代码"},
 			{name: "report_date", alias: "rdate", desc: "报告期"},
+			{name: "announce_date", alias: "adate", desc: "公告日期"},
 			{name: "f284", alias: "guidance_net_profit_yoy_low", desc: "本期净利润同比增幅下限(%)"},
 			{name: "f285", alias: "guidance_net_profit_yoy_high", desc: "本期净利润同比增幅上限(%)"},
 			{name: "f286", alias: "flash_net_profit_attributable_to_owners", desc: "归母净利润（业绩快报）"},
@@ -383,6 +388,7 @@ var cwViews = []ColumnViews{
 		fields: []ColumnView{
 			{name: "code", desc: "证券代码"},
 			{name: "report_date", alias: "rdate", desc: "报告期"},
+			{name: "announce_date", alias: "adate", desc: "公告日期"},
 			{name: "f401", alias: "settlement_reserve", desc: "结算备付金"},
 			{name: "f402", alias: "funds_lent", desc: "拆出资金"},
 			{name: "f403", alias: "loans_and_advances_current", desc: "发放贷款及垫款(流动资产)"},
@@ -458,6 +464,7 @@ var cwViews = []ColumnViews{
 		fields: []ColumnView{
 			{name: "code", desc: "证券代码"},
 			{name: "report_date", alias: "rdate", desc: "报告期"},
+			{name: "announce_date", alias: "adate", desc: "公告日期"},
 			{name: "f0", alias: "eps_basic", desc: "基本每股收益"},
 			{name: "f1", alias: "eps_excl_extra", desc: "扣非每股收益"},
 			{name: "f3", alias: "nav_ps", desc: "每股净资产"},

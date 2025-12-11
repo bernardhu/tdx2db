@@ -8,9 +8,10 @@ import (
 )
 
 type CWRecord struct {
-	Code       string
-	ReportDate uint32
-	Values     []float32
+	Code         string
+	ReportDate   uint32
+	AnnounceDate uint32
+	Values       []float32
 }
 
 // ParseFinancialDAT 解析通达信财务数据文件
@@ -97,9 +98,10 @@ func ParseFinancialDAT(path string) ([]CWRecord, error) {
 		}
 
 		results = append(results, CWRecord{
-			Code:       code,
-			ReportDate: reportDate,
-			Values:     values,
+			Code:         code,
+			ReportDate:   reportDate,
+			AnnounceDate: uint32(values[313]), //yymmdd
+			Values:       values,
 		})
 	}
 
