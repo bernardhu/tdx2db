@@ -38,7 +38,7 @@ func CreateQfqView(db *sql.DB) error {
 		ROUND(s.high  * f.qfq_factor, 2) AS high,
 		ROUND(s.low   * f.qfq_factor, 2) AS low,
 		ROUND(s.close * f.qfq_factor, 2) AS close,
-		t.turnover,
+		t.turnover
 	FROM %s s
 	JOIN %s f ON s.symbol = f.symbol AND s.date = f.date
 	LEFT JOIN %s t ON s.symbol = t.symbol AND s.date = t.date;
@@ -63,7 +63,7 @@ func CreateHfqView(db *sql.DB) error {
 		ROUND(s.high  * f.hfq_factor, 2) AS high,
 		ROUND(s.low   * f.hfq_factor, 2) AS low,
 		ROUND(s.close * f.hfq_factor, 2) AS close,
-		t.turnover,
+		t.turnover
 	FROM %s s
 	JOIN %s f ON s.symbol = f.symbol AND s.date = f.date
 	LEFT JOIN %s t ON s.symbol = t.symbol AND s.date = t.date;
@@ -71,7 +71,7 @@ func CreateHfqView(db *sql.DB) error {
 
 	_, err := db.Exec(query)
 	if err != nil {
-		return fmt.Errorf("failed to create or replace view %s: %w", QfqViewName, err)
+		return fmt.Errorf("failed to create or replace view %s: %w", HfqViewName, err)
 	}
 	return nil
 }

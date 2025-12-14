@@ -33,7 +33,7 @@ func CreateXdxrView(db *sql.DB) error {
 		c1 as fenhong,
 		c2 as peigujia,
 		c3 as songzhuangu,
-		c4 as peigu,
+		c4 as peigu
 	FROM %s
 	WHERE category=1;
 	`, XdxrViewName, GBBQSchema.Name)
