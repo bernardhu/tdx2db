@@ -41,25 +41,25 @@ CREATE TABLE IF NOT EXISTS raw_base (
 
 -- raw_block_cfg
 CREATE TABLE IF NOT EXISTS raw_block_cfg (
-    name VARCHAR,
-    code VARCHAR,
-    typ VARCHAR,
-    child BOOL,
-    parent VARCHAR,
-    ref VARCHAR
+    name VARCHAR,   --板块名
+    code VARCHAR,   --板块代码
+    typ VARCHAR,    --fg 风格/dq 地区/gn 概念/hy 行业/yjhy 一级行业
+    child BOOL,     --叶子结点？
+    parent VARCHAR, --父板块
+    ref VARCHAR     --key
 );
 
 -- raw_block
 CREATE TABLE IF NOT EXISTS raw_block (
-    block VARCHAR,
-    blocktype VARCHAR,
-    code VARCHAR,
-    refcode VARCHAR,
+    block VARCHAR,     --板块名
+    blocktype VARCHAR, --板块类型 style 风格/concept 概念/swhy 申万行业/tdxhy 通达信行业/index 指数/normal
+    code VARCHAR,      --股票代码
+    refcode VARCHAR,   --raw_block_cfg 中的ref
     level INT,
-    total INT
+    total INT          --这个板块有多少只股票
 );
 
--- raw_delist
+-- raw_delist 摘牌名单
 CREATE TABLE IF NOT EXISTS raw_delist (
     code VARCHAR,
     name VARCHAR,
