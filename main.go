@@ -27,7 +27,7 @@ func main() {
 	}
 
 	var dbPath, dayFileDir, minline, workdayPath, workdayYear, cwdayPath, gpdayPath, basePath string
-	var cwdlFlag, gpdlFlag string
+	var cwdlFlag, gpdlFlag, maxday string
 	var (
 		m1FileDir   string
 		m5FileDir   string
@@ -58,7 +58,7 @@ func main() {
 					return fmt.Errorf("--minline 允许 '1'、'5'、'1,5'、'5,1'（传入: %s）", minline)
 				}
 			}
-			if err := cmd.Cron(dbPath, minline); err != nil {
+			if err := cmd.Cron(dbPath, minline, maxday); err != nil {
 				return err
 			}
 			return nil
@@ -189,6 +189,7 @@ func main() {
 	cronCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
 	cronCmd.MarkFlagRequired("dbpath")
 	cronCmd.Flags().StringVar(&minline, "minline", "", minLineInfo)
+	cronCmd.Flags().StringVar(&maxday, "maxday", "", "行情最大日期")
 
 	workdayCmd.Flags().StringVar(&dbPath, "dbpath", "", dbPathInfo)
 	workdayCmd.Flags().StringVar(&workdayPath, "wdpath", "", "通达信日期例外文件路径")

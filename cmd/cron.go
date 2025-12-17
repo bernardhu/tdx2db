@@ -17,7 +17,7 @@ import (
 
 type XdxrIndex map[string][]model.XdxrData
 
-func Cron(dbPath string, minline string) error {
+func Cron(dbPath string, minline string, maxday string) error {
 
 	if dbPath == "" {
 		return fmt.Errorf("database path cannot be empty")
@@ -35,12 +35,18 @@ func Cron(dbPath string, minline string) error {
 	}
 	fmt.Printf("📅 日线数据的最新日期为 %s\n", latestStockDate.Format("2006-01-02"))
 
-	err = UpdateStocksDaily(db, latestStockDate)
+	max := Today
+	mday, err := time.Parse("20060102", maxday)
+	if err == nil {
+		max = mday
+		fmt.Printf("最大日期为 %s\n", max.Format("2006-01-02"))
+	}
+	err = UpdateStocksDaily(db, latestStockDate, max)
 	if err != nil {
 		return fmt.Errorf("failed to update daily stock data: %w", err)
 	}
 
-	err = UpdateStocksMinLine(db, latestStockDate, minline)
+	err = UpdateStocksMinLine(db, latestStockDate, max, minline)
 	if err != nil {
 		return fmt.Errorf("failed to update minute-line stock data: %w", err)
 	}
@@ -69,8 +75,8 @@ func Cron(dbPath string, minline string) error {
 	return nil
 }
 
-func UpdateStocksDaily(db *sql.DB, latestDate time.Time) error {
-	validDates, err := prepareTdxData(latestDate, "day")
+func UpdateStocksDaily(db *sql.DB, latestDate, max time.Time) error {
+	validDates, err := prepareTdxData(latestDate, max, "day")
 	if err != nil {
 		return fmt.Errorf("failed to prepare tdx data: %w", err)
 	}
@@ -91,12 +97,12 @@ func UpdateStocksDaily(db *sql.DB, latestDate time.Time) error {
 	return nil
 }
 
-func UpdateStocksMinLine(db *sql.DB, latestDate time.Time, minline string) error {
+func UpdateStocksMinLine(db *sql.DB, latestDate, max time.Time, minline string) error {
 	if minline == "" {
 		return nil
 	}
 
-	validDates, err := prepareTdxData(latestDate, "tic")
+	validDates, err := prepareTdxData(latestDate, max, "tic")
 	if err != nil {
 		return fmt.Errorf("failed to prepare tdx data: %w", err)
 	}
@@ -287,10 +293,10 @@ func getXdxrByCode(index XdxrIndex, symbol string) []model.XdxrData {
 	return []model.XdxrData{}
 }
 
-func prepareTdxData(latestDate time.Time, dataType string) ([]time.Time, error) {
+func prepareTdxData(latestDate, max time.Time, dataType string) ([]time.Time, error) {
 	var dates []time.Time
 
-	for d := latestDate.Add(24 * time.Hour); !d.After(Today); d = d.Add(24 * time.Hour) {
+	for d := latestDate.Add(24 * time.Hour); !d.After(max); d = d.Add(24 * time.Hour) {
 		dates = append(dates, d)
 	}
 
