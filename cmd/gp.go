@@ -130,7 +130,7 @@ func parseFileName(n string) (string, string, string) {
 	return mkt, code, res
 }
 
-func filerHashes(hash map[string]string) {
+func filterHashes(hash map[string]string) {
 	for k, _ := range hash {
 		mkt, code, res := parseFileName(k)
 		if res != "ashare" && res != "tdx" && res != "mkt" && res != "stock" {
@@ -159,7 +159,7 @@ func Gp(dbPath, gpFileDir string, download bool) error {
 
 	targetPath := filepath.Join(gpFileDir, "gpszsh.txt")
 	existingHashes, err := loadHashes(targetPath)
-	filerHashes(existingHashes)
+	filterHashes(existingHashes)
 	if err != nil {
 		return fmt.Errorf("failed to read existing gpcw cache: %w", err)
 	}
@@ -186,7 +186,7 @@ func Gp(dbPath, gpFileDir string, download bool) error {
 		return fmt.Errorf("failed to read latest gpcw.txt: %w", err)
 	}
 
-	filerHashes(latestHashes)
+	filterHashes(latestHashes)
 	updatedFiles, olds, news := diffHashes(existingHashes, latestHashes)
 	if len(updatedFiles) == 0 {
 		fmt.Println("ℹ️ 没有新的股票文件需要更新")

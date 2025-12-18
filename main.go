@@ -99,7 +99,7 @@ func main() {
 			if err != nil {
 				return fmt.Errorf("--gpdl 需要 true/false，当前为 %q: %w", gpdlFlag, err)
 			}
-			if err := cmd.Gp(dbPath, gpdayPath, gpdl); err != nil {
+			if err := cmd.Gp2(dbPath, gpdayPath, gpdl); err != nil {
 				return err
 			}
 			return nil

@@ -19,6 +19,9 @@ import (
 	"github.com/jing2uo/tdx2db/utils"
 )
 
+var GP_FILE_URL = "https://data.tdx.com.cn/tdxgp/"
+var GP_ALL_URL = "https://data.tdx.com.cn/vipdoc/"
+
 func Gp2(dbPath, gpFileDir string, download bool) error {
 	if dbPath == "" {
 		return fmt.Errorf("database path cannot be empty")
@@ -38,7 +41,7 @@ func Gp2(dbPath, gpFileDir string, download bool) error {
 
 	targetPath := filepath.Join(gpFileDir, "gpszsh.txt")
 	existingHashes, err := loadHashes(targetPath)
-	filerHashes(existingHashes)
+	filterHashes(existingHashes)
 	if err != nil {
 		return fmt.Errorf("failed to read existing gpcw cache: %w", err)
 	}
@@ -65,7 +68,7 @@ func Gp2(dbPath, gpFileDir string, download bool) error {
 		return fmt.Errorf("failed to read latest gpcw.txt: %w", err)
 	}
 
-	filerHashes(latestHashes)
+	filterHashes(latestHashes)
 	updatedFiles, olds, news := diffHashes(existingHashes, latestHashes)
 	if len(updatedFiles) == 0 {
 		fmt.Println("ℹ️ 没有新的股票文件需要更新")
@@ -79,6 +82,28 @@ func Gp2(dbPath, gpFileDir string, download bool) error {
 	for _, f := range updatedFiles {
 		updatedSet[f] = struct{}{}
 	}
+	/*
+		if len(updatedSet) > 2000 { //全部下载算了
+			fmt.Printf("❕will try download all\n")
+			zipPath := filepath.Join(gpFileDir, "tdxgp.zip")
+			if err := downloadFile(zipPath, "tdxgp.zip", GP_ALL_URL, true); err != nil {
+				return err
+			}
+			cmd := exec.Command("rm", "-f", gpFileDir+"/*.dat")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+
+			if err := cmd.Run(); err != nil {
+				fmt.Printf("⚠️ 删除旧文件失败\n")
+				return nil
+			}
+
+			if err := utils.UnzipFile(zipPath, gpFileDir); err != nil {
+				return fmt.Errorf("failed to unzip file %s: %w", targetPath, err)
+			}
+			return nil
+		}
+	*/
 
 	allFiles := make([]string, 0, len(latestHashes))
 	for f := range latestHashes {
@@ -112,7 +137,7 @@ func Gp2(dbPath, gpFileDir string, download bool) error {
 	// 其他小文件（板块/市场）仍按原逻辑单线程导入
 	for _, v := range append(blkFiles, mktFiles...) {
 		targetPath := filepath.Join(gpFileDir, v)
-		if err := downloadIfNeeded(targetPath, v, download, updatedSet); err != nil {
+		if err := downloadFile(targetPath, v, GP_FILE_URL, download); err != nil {
 			return err
 		}
 
@@ -197,6 +222,7 @@ func rebuildGpBaseFromFiles(db *sql.DB, gpFileDir string, files []string, update
 	var processed atomic.Int64
 	total := int64(len(files))
 
+	//process file
 	var wg sync.WaitGroup
 	wg.Add(workerCount)
 	for i := 0; i < workerCount; i++ {
@@ -212,7 +238,7 @@ func rebuildGpBaseFromFiles(db *sql.DB, gpFileDir string, files []string, update
 					}
 
 					targetPath := filepath.Join(gpFileDir, v)
-					if err := downloadIfNeeded(targetPath, v, download, updatedSet); err != nil {
+					if err := downloadFile(targetPath, v, GP_FILE_URL, download); err != nil {
 						setWorkerErr(err)
 						return
 					}
@@ -230,11 +256,7 @@ func rebuildGpBaseFromFiles(db *sql.DB, gpFileDir string, files []string, update
 						return
 					}
 
-					select {
-					case batches <- batch:
-					case <-ctx.Done():
-						return
-					}
+					batches <- batch
 
 					n := processed.Add(1)
 					if n%200 == 0 || n == total {
@@ -245,6 +267,7 @@ func rebuildGpBaseFromFiles(db *sql.DB, gpFileDir string, files []string, update
 		}()
 	}
 
+	//dispatch file
 	go func() {
 		defer close(jobs)
 		for _, f := range files {
@@ -269,21 +292,13 @@ func rebuildGpBaseFromFiles(db *sql.DB, gpFileDir string, files []string, update
 	return nil
 }
 
-func downloadIfNeeded(targetPath, fileName string, download bool, updatedSet map[string]struct{}) error {
-	needDownload := false
-	if download {
-		if _, ok := updatedSet[fileName]; ok {
-			needDownload = true
-		} else if _, err := os.Stat(targetPath); err != nil {
-			needDownload = true
-		}
-	}
-
-	if !needDownload {
+// https://data.tdx.com.cn/vipdoc/tdxgp.zip
+func downloadFile(targetPath, fileName, urlbase string, download bool) error {
+	if !download {
 		return nil
 	}
 
-	url := fmt.Sprintf("https://data.tdx.com.cn/tdxgp/%s", fileName)
+	url := urlbase + fileName
 	cmd := exec.Command("wget", "-O", targetPath, url)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
