@@ -76,61 +76,20 @@ var (
 	gpMktFieldMeta  = initGpFieldMeta(mktbase)
 )
 
-func AggregateGpBatches(recs []tdx.GpRecord) ([]GpWideBatch, error) {
-	return aggregateGpRecords(recs, gpBaseFieldMeta)
+func AggregateGpBatches(recs []tdx.GpRecord, kind GpRebuildKind) ([]GpWideBatch, error) {
+	switch kind {
+	case GpRebuildBase:
+		return aggregateGpRecords(recs, gpBaseFieldMeta, kind)
+	case GpRebuildBlk:
+		return aggregateGpRecords(recs, gpBlkFieldMeta, kind)
+	case GpRebuildMkt:
+		return aggregateGpRecords(recs, gpMktFieldMeta, kind)
+	default:
+		return nil, fmt.Errorf("unsupport kind")
+	}
 }
 
-func AggregateGpRecords(recs []tdx.GpRecord) (GpWideBatch, error) {
-	batches, err := AggregateGpBatches(recs)
-	if err != nil {
-		return GpWideBatch{}, err
-	}
-	if len(batches) == 0 {
-		return GpWideBatch{}, nil
-	}
-	if len(batches) > 1 {
-		return GpWideBatch{}, fmt.Errorf("aggregate gp records: expected 1 batch, got %d", len(batches))
-	}
-	return batches[0], nil
-}
-
-func AggregateBlkBatches(recs []tdx.GpRecord) ([]GpWideBatch, error) {
-	return aggregateGpRecords(recs, gpBlkFieldMeta)
-}
-
-func AggregateBlkRecords(recs []tdx.GpRecord) (GpWideBatch, error) {
-	batches, err := AggregateBlkBatches(recs)
-	if err != nil {
-		return GpWideBatch{}, err
-	}
-	if len(batches) == 0 {
-		return GpWideBatch{}, nil
-	}
-	if len(batches) > 1 {
-		return GpWideBatch{}, fmt.Errorf("aggregate blk records: expected 1 batch, got %d", len(batches))
-	}
-	return batches[0], nil
-}
-
-func AggregateMktBatches(recs []tdx.GpRecord) ([]GpWideBatch, error) {
-	return aggregateGpRecords(recs, gpMktFieldMeta)
-}
-
-func AggregateMktRecords(recs []tdx.GpRecord) (GpWideBatch, error) {
-	batches, err := AggregateMktBatches(recs)
-	if err != nil {
-		return GpWideBatch{}, err
-	}
-	if len(batches) == 0 {
-		return GpWideBatch{}, nil
-	}
-	if len(batches) > 1 {
-		return GpWideBatch{}, fmt.Errorf("aggregate mkt records: expected 1 batch, got %d", len(batches))
-	}
-	return batches[0], nil
-}
-
-func aggregateGpRecords(recs []tdx.GpRecord, meta gpFieldMeta) ([]GpWideBatch, error) {
+func aggregateGpRecords(recs []tdx.GpRecord, meta gpFieldMeta, kind GpRebuildKind) ([]GpWideBatch, error) {
 	if len(recs) == 0 {
 		return nil, nil
 	}
@@ -154,16 +113,22 @@ func aggregateGpRecords(recs []tdx.GpRecord, meta gpFieldMeta) ([]GpWideBatch, e
 		}
 
 		key := record.ReportDate
-		if key == 0 && record.RecType == 10 {
-			now := time.Now()
-			key = uint32(now.Year()*10000) + uint32(now.Month()*100) + uint32(now.Day())
-		}
+		if kind == GpRebuildBase {
+			if key == 0 && record.RecType == 10 {
+				now := time.Now()
+				key = uint32(now.Year()*10000) + uint32(now.Month()*100) + uint32(now.Day())
+				record.ReportDate = key
+			}
 
-		if fixDay, fix := fixDate(key); fix {
-			key = fixDay
-		}
-		if key == 0 {
-			continue
+			if fixDay, fix := fixDate(key); fix {
+				fmt.Printf("fixday form %d to %d %v\n", record.ReportDate, fixDay, record)
+				record.ReportDate = fixDay
+				key = fixDay
+			}
+			if key == 0 {
+				fmt.Printf("0day skip %v\n", record)
+				continue
+			}
 		}
 
 		k := batchKey{code: record.Code, mkt: record.Mkt}
@@ -442,112 +407,6 @@ func RebuildGpTables(ctx context.Context, db *sql.DB, rebuildBase, rebuildBlk, r
 		}
 	}
 
-	if err := execTableDDL(ctx, conn, "COMMIT"); err != nil {
-		return fmt.Errorf("gp rebuild: swap tables: %w", err)
-	}
-
-	return nil
-}
-
-func RebuildGpBase(ctx context.Context, db *sql.DB, batches <-chan GpWideBatch) error {
-	targetTable := GpSchema.Name
-	stageTable := targetTable + "_stage"
-
-	conn, err := db.Conn(ctx)
-	if err != nil {
-		return fmt.Errorf("gp rebuild: get conn: %w", err)
-	}
-	defer conn.Close()
-
-	stageSchema := TableSchema{
-		Name:    stageTable,
-		Columns: append([]string(nil), GpSchema.Columns...),
-		Keys:    append([]string(nil), GpSchema.Keys...),
-	}
-
-	if err := execTableDDL(ctx, conn, fmt.Sprintf("DROP TABLE IF EXISTS %s", stageSchema.Name)); err != nil {
-		return fmt.Errorf("gp rebuild: drop stage: %w", err)
-	}
-
-	if err := createTableOnConn(ctx, conn, stageSchema); err != nil {
-		return fmt.Errorf("gp rebuild: create stage: %w", err)
-	}
-
-	columnCount := len(stageSchema.Columns)
-	fieldOffset := 3
-	fieldCount := columnCount - fieldOffset
-
-	if err := conn.Raw(func(dc any) error {
-		driverConn, ok := dc.(driver.Conn)
-		if !ok {
-			return fmt.Errorf("gp rebuild: unexpected driver conn type %T", dc)
-		}
-
-		appender, err := duckdb.NewAppenderFromConn(driverConn, "", stageTable)
-		if err != nil {
-			return fmt.Errorf("gp rebuild: new appender: %w", err)
-		}
-		closed := false
-		defer func() {
-			if !closed {
-				_ = appender.Close()
-			}
-		}()
-
-		rowValues := make([]driver.Value, columnCount)
-
-		for {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case batch, ok := <-batches:
-				if !ok {
-					if err := appender.Close(); err != nil {
-						return fmt.Errorf("gp rebuild: close appender: %w", err)
-					}
-					closed = true
-					return nil
-				}
-
-				rowValues[0] = batch.Code
-				rowValues[1] = batch.Mkt
-
-				for _, row := range batch.Rows {
-					if len(row.Values) != gpBaseFieldMeta.count || len(row.Present) != gpBaseFieldMeta.words {
-						return fmt.Errorf("gp rebuild: unexpected gp row shape values=%d present=%d", len(row.Values), len(row.Present))
-					}
-
-					rowValues[2] = row.RDate
-
-					for i := 0; i < fieldCount; i++ {
-						if isPresent(row.Present, i) {
-							rowValues[fieldOffset+i] = float64(row.Values[i])
-						} else {
-							rowValues[fieldOffset+i] = nil
-						}
-					}
-
-					if err := appender.AppendRow(rowValues...); err != nil {
-						return fmt.Errorf("gp rebuild: append row: %w", err)
-					}
-				}
-			}
-		}
-	}); err != nil {
-		return fmt.Errorf("gp rebuild: append: %w", err)
-	}
-
-	if err := execTableDDL(ctx, conn, "BEGIN"); err != nil {
-		return fmt.Errorf("gp rebuild: begin swap: %w", err)
-	}
-	if err := execTableDDL(ctx, conn, fmt.Sprintf("DROP TABLE IF EXISTS %s", targetTable)); err != nil {
-		_ = execTableDDL(ctx, conn, "ROLLBACK")
-		return fmt.Errorf("gp rebuild: drop target: %w", err)
-	}
-	if err := execTableDDL(ctx, conn, fmt.Sprintf("ALTER TABLE %s RENAME TO %s", stageTable, targetTable)); err != nil {
-		_ = execTableDDL(ctx, conn, "ROLLBACK")
-		return fmt.Errorf("gp rebuild: rename stage: %w", err)
-	}
 	if err := execTableDDL(ctx, conn, "COMMIT"); err != nil {
 		return fmt.Errorf("gp rebuild: swap tables: %w", err)
 	}
