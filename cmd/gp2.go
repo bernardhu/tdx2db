@@ -82,28 +82,27 @@ func Gp2(dbPath, gpFileDir string, download bool) error {
 	for _, f := range updatedFiles {
 		updatedSet[f] = struct{}{}
 	}
-	/*
-		if len(updatedSet) > 2000 { //全部下载算了
-			fmt.Printf("❕will try download all\n")
-			zipPath := filepath.Join(gpFileDir, "tdxgp.zip")
-			if err := downloadFile(zipPath, "tdxgp.zip", GP_ALL_URL, true); err != nil {
-				return err
-			}
-			cmd := exec.Command("rm", "-f", gpFileDir+"/*.dat")
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
 
-			if err := cmd.Run(); err != nil {
-				fmt.Printf("⚠️ 删除旧文件失败\n")
-				return nil
-			}
+	if len(updatedSet) > 2000 && download { //全部下载算了
+		fmt.Printf("❕will try download all\n")
+		zipPath := filepath.Join(gpFileDir, "tdxgp.zip")
+		if err := downloadFile(zipPath, "tdxgp.zip", GP_ALL_URL, true); err != nil {
+			return err
+		}
+		cmd := exec.Command("rm", "-f", gpFileDir+"/*.dat")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 
-			if err := utils.UnzipFile(zipPath, gpFileDir); err != nil {
-				return fmt.Errorf("failed to unzip file %s: %w", targetPath, err)
-			}
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("⚠️ 删除旧文件失败\n")
 			return nil
 		}
-	*/
+
+		if err := utils.UnzipFile(zipPath, gpFileDir); err != nil {
+			return fmt.Errorf("failed to unzip file %s: %w", targetPath, err)
+		}
+		return nil
+	}
 
 	allFiles := make([]string, 0, len(latestHashes))
 	for f := range latestHashes {
@@ -130,37 +129,8 @@ func Gp2(dbPath, gpFileDir string, download bool) error {
 		}
 	}
 
-	if err := rebuildGpBaseFromFiles(db, gpFileDir, stockFiles, updatedSet, download); err != nil {
+	if err := rebuildGpTablesFromFiles(db, gpFileDir, stockFiles, blkFiles, mktFiles, download); err != nil {
 		return err
-	}
-
-	// 其他小文件（板块/市场）仍按原逻辑单线程导入
-	for _, v := range append(blkFiles, mktFiles...) {
-		targetPath := filepath.Join(gpFileDir, v)
-		if err := downloadFile(targetPath, v, GP_FILE_URL, download); err != nil {
-			return err
-		}
-
-		mkt, code, res := parseFileName(v)
-		typ := res
-		if res == "ashare" {
-			typ = "stock"
-		}
-
-		recs, err := tdx.ParseGpDAT(targetPath, mkt, code)
-		if err != nil {
-			return fmt.Errorf("failed to parse file %s: %w", targetPath, err)
-		}
-
-		if typ == "tdx" { //block
-			if err := database.ImportBlkdata(db, recs); err != nil {
-				return fmt.Errorf("failed to import blk file %w", err)
-			}
-		} else if typ == "mkt" { //mkt
-			if err := database.ImportMktdata(db, recs); err != nil {
-				return fmt.Errorf("failed to import mkt file %w", err)
-			}
-		}
 	}
 
 	fmt.Printf("开始创建视图\n")
@@ -179,9 +149,13 @@ func Gp2(dbPath, gpFileDir string, download bool) error {
 	return nil
 }
 
-func rebuildGpBaseFromFiles(db *sql.DB, gpFileDir string, files []string, updatedSet map[string]struct{}, download bool) error {
+func rebuildGpTablesFromFiles(db *sql.DB, gpFileDir string, stockFiles, blkFiles, mktFiles []string, download bool) error {
+	files := make([]string, 0, len(stockFiles)+len(blkFiles)+len(mktFiles))
+	files = append(files, stockFiles...)
+	files = append(files, blkFiles...)
+	files = append(files, mktFiles...)
 	if len(files) == 0 {
-		fmt.Println("ℹ️ 未发现 stock 类型文件，跳过 GP 重建")
+		fmt.Println("ℹ️ 未发现 GP 文件，跳过重建")
 		return nil
 	}
 
@@ -193,17 +167,21 @@ func rebuildGpBaseFromFiles(db *sql.DB, gpFileDir string, files []string, update
 		workerCount = len(files)
 	}
 
-	fmt.Printf("🚀 GP 全量重建: files=%d workers=%d\n", len(files), workerCount)
+	rebuildBase := len(stockFiles) > 0
+	rebuildBlk := len(blkFiles) > 0
+	rebuildMkt := len(mktFiles) > 0
+
+	fmt.Printf("🚀 GP 重建: stock=%d blk=%d mkt=%d workers=%d\n", len(stockFiles), len(blkFiles), len(mktFiles), workerCount)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	jobs := make(chan string, workerCount*2)
-	batches := make(chan database.GpWideBatch, workerCount*2)
+	batches := make(chan database.GpRebuildBatch, workerCount*2)
 
 	writerErrCh := make(chan error, 1)
 	go func() {
-		err := database.RebuildGpBase(ctx, db, batches)
+		err := database.RebuildGpTables(ctx, db, rebuildBase, rebuildBlk, rebuildMkt, batches)
 		if err != nil {
 			cancel()
 		}
@@ -243,20 +221,55 @@ func rebuildGpBaseFromFiles(db *sql.DB, gpFileDir string, files []string, update
 						return
 					}
 
-					mkt, code, _ := parseFileName(v)
+					mkt, code, res := parseFileName(v)
 					recs, err := tdx.ParseGpDAT(targetPath, mkt, code)
 					if err != nil {
 						setWorkerErr(fmt.Errorf("failed to parse file %s: %w", targetPath, err))
 						return
 					}
 
-					batch, err := database.AggregateGpRecords(recs)
+					typ := res
+					if res == "ashare" {
+						typ = "stock"
+					}
+
+					var (
+						kind  database.GpRebuildKind
+						items []database.GpWideBatch
+					)
+					switch typ {
+					case "stock":
+						kind = database.GpRebuildBase
+						items, err = database.AggregateGpBatches(recs)
+					case "tdx":
+						kind = database.GpRebuildBlk
+						items, err = database.AggregateBlkBatches(recs)
+					case "mkt":
+						kind = database.GpRebuildMkt
+						items, err = database.AggregateMktBatches(recs)
+					default:
+						n := processed.Add(1)
+						if n%200 == 0 || n == total {
+							fmt.Printf("📈 GP 进度: %d/%d\n", n, total)
+						}
+						continue
+					}
+
 					if err != nil {
 						setWorkerErr(fmt.Errorf("failed to aggregate file %s: %w", targetPath, err))
 						return
 					}
 
-					batches <- batch
+					for _, batch := range items {
+						if len(batch.Rows) == 0 {
+							continue
+						}
+						select {
+						case batches <- database.GpRebuildBatch{Kind: kind, Batch: batch}:
+						case <-ctx.Done():
+							return
+						}
+					}
 
 					n := processed.Add(1)
 					if n%200 == 0 || n == total {
