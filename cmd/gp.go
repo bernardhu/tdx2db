@@ -148,7 +148,7 @@ func filterHashes(hash map[string]string) {
 var GP_FILE_URL = "https://data.tdx.com.cn/tdxgp/"
 var GP_ALL_URL = "https://data.tdx.com.cn/vipdoc/"
 
-func Gp2(dbPath, gpFileDir string, download bool) error {
+func Gp(dbPath, gpFileDir string, download bool) error {
 	if dbPath == "" {
 		return fmt.Errorf("database path cannot be empty")
 	}
