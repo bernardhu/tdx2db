@@ -2,13 +2,17 @@ package cmd
 
 import (
 	"bufio"
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	_ "github.com/duckdb/duckdb-go/v2"
 	"github.com/jing2uo/tdx2db/database"
@@ -16,6 +20,9 @@ import (
 	"github.com/jing2uo/tdx2db/tdx"
 	"github.com/jing2uo/tdx2db/utils"
 )
+
+var CW_FILE_URL = "https://data.tdx.com.cn/tdxfin/"
+var CW_ALL_URL = "https://data.tdx.com.cn/vipdoc/"
 
 func Cw(dbPath, cwFileDir string, download bool) error {
 	if dbPath == "" {
@@ -71,40 +78,50 @@ func Cw(dbPath, cwFileDir string, download bool) error {
 	sort.Strings(updatedFiles)
 	fmt.Printf("🌟 发现 %d 个新的财务文件: %v oldhash:%v newhash:%v download:%v\n", len(updatedFiles), updatedFiles, olds, news, download)
 
-	for _, v := range updatedFiles {
-		targetPath := filepath.Join(cwFileDir, v)
+	if len(updatedFiles) > 50 && download {
+		fmt.Printf("❕will try download all\n")
+		zipPath := filepath.Join(cwFileDir, "tdxfin.zip")
+		if err := downloadFile(zipPath, "tdxfin.zip", CW_ALL_URL, true); err != nil {
+			return err
+		}
+		if err := removeGlob(filepath.Join(cwFileDir, "gpcw*.dat")); err != nil {
+			return err
+		}
+		if err := removeGlob(filepath.Join(cwFileDir, "gpcw*.zip")); err != nil {
+			return err
+		}
+		if err := unzip(zipPath, cwFileDir); err != nil {
+			return fmt.Errorf("failed to unzip file %s: %w", zipPath, err)
+		}
+		download = false
+	}
 
-		if download {
-			url := fmt.Sprintf("https://data.tdx.com.cn/tdxfin/%s", v)
-			cmd := exec.Command("wget", "-O", targetPath, url)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-
-			if err := cmd.Run(); err != nil {
-				fmt.Printf("⚠️ wget 下载 %s 失败: %v\n", url, err)
-				continue
+	if download {
+		for _, v := range updatedFiles {
+			targetPath := filepath.Join(cwFileDir, v)
+			if err := downloadFile(targetPath, v, CW_FILE_URL, true); err != nil {
+				return err
 			}
-
-			fmt.Printf("✅ 已下载 %s %s\n", url, targetPath)
-			if err := utils.UnzipFile(targetPath, cwFileDir); err != nil {
+			if err := unzip(targetPath, cwFileDir); err != nil {
 				return fmt.Errorf("failed to unzip file %s: %w", targetPath, err)
 			}
 		}
+	}
 
-		dataPath := strings.ReplaceAll(targetPath, "zip", "dat")
-
-		recs, err := tdx.ParseFinancialDAT(dataPath)
-		if err != nil {
-			return fmt.Errorf("failed to parse file %s: %w", dataPath, err)
+	allFiles := make([]string, 0, len(latestHashes))
+	for f := range latestHashes {
+		if strings.HasSuffix(f, ".zip") {
+			allFiles = append(allFiles, f)
 		}
-		fmt.Printf("✅ 已解析财务数据%s\n", dataPath)
+	}
+	sort.Strings(allFiles)
+	if len(allFiles) == 0 {
+		fmt.Println("ℹ️ 未发现 CW 文件，跳过重建")
+		return nil
+	}
 
-		err = database.ImportCaiwu(db, recs)
-		if err != nil {
-			return fmt.Errorf("failed to import cw file %w", err)
-		}
-		fmt.Printf("✅ 已导入财务数据%s\n", dataPath)
-
+	if err := rebuildCwTableFromFiles(db, cwFileDir, allFiles); err != nil {
+		return err
 	}
 
 	err = database.CreateCwViews(db)
@@ -114,6 +131,121 @@ func Cw(dbPath, cwFileDir string, download bool) error {
 		fmt.Print("✅ 已更新财务视图\n")
 	}
 
+	return nil
+}
+
+func rebuildCwTableFromFiles(db *sql.DB, cwFileDir string, zipFiles []string) error {
+	workerCount := runtime.GOMAXPROCS(0)
+	if workerCount < 1 {
+		workerCount = 1
+	}
+	if workerCount > len(zipFiles) {
+		workerCount = len(zipFiles)
+	}
+
+	fmt.Printf("🚀 CW 重建: files=%d workers=%d\n", len(zipFiles), workerCount)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	jobs := make(chan string, workerCount*2)
+	batches := make(chan database.CwRebuildBatch, workerCount*2)
+
+	writerErrCh := make(chan error, 1)
+	go func() {
+		err := database.RebuildCwTable(ctx, db, batches)
+		if err != nil {
+			cancel()
+		}
+		writerErrCh <- err
+	}()
+
+	var workerErr error
+	var workerErrOnce sync.Once
+	setWorkerErr := func(err error) {
+		workerErrOnce.Do(func() {
+			workerErr = err
+			cancel()
+		})
+	}
+
+	var processed atomic.Int64
+	total := int64(len(zipFiles))
+
+	var wg sync.WaitGroup
+	wg.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case v, ok := <-jobs:
+					if !ok {
+						return
+					}
+
+					datName := strings.TrimSuffix(v, ".zip") + ".dat"
+					datPath := filepath.Join(cwFileDir, datName)
+
+					recs, err := tdx.ParseFinancialDAT(datPath)
+					if err != nil {
+						setWorkerErr(fmt.Errorf("failed to parse file %s: %w", datPath, err))
+						return
+					}
+
+					if len(recs) > 0 {
+						select {
+						case batches <- database.CwRebuildBatch{Records: recs}:
+						case <-ctx.Done():
+							return
+						}
+					}
+
+					n := processed.Add(1)
+					if n%10 == 0 || n == total {
+						fmt.Printf("📈 CW 进度: %d/%d\n", n, total)
+					}
+				}
+			}
+		}()
+	}
+
+	go func() {
+		defer close(jobs)
+		for _, f := range zipFiles {
+			select {
+			case jobs <- f:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	wg.Wait()
+	close(batches)
+
+	writerErr := <-writerErrCh
+	if workerErr != nil {
+		return workerErr
+	}
+	if writerErr != nil && writerErr != context.Canceled {
+		return writerErr
+	}
+	return nil
+}
+
+func removeGlob(pattern string) error {
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return err
+	}
+	for _, p := range matches {
+		if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
 	return nil
 }
 

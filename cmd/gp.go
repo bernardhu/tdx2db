@@ -224,6 +224,15 @@ func Gp(dbPath, gpFileDir string, download bool) error {
 		download = false //后续不用下载了
 	}
 
+	if download {
+		for _, v := range updatedFiles {
+			targetPath := filepath.Join(gpFileDir, v)
+			if err := downloadFile(targetPath, v, GP_FILE_URL, download); err != nil {
+				return err
+			}
+		}
+	}
+
 	//全量rebuild
 	allFiles := make([]string, 0, len(latestHashes))
 	for f := range latestHashes {
@@ -251,7 +260,7 @@ func Gp(dbPath, gpFileDir string, download bool) error {
 		}
 	}
 
-	if err := rebuildGpTablesFromFiles(db, gpFileDir, stockFiles, blkFiles, mktFiles, download); err != nil {
+	if err := rebuildGpTablesFromFiles(db, gpFileDir, stockFiles, blkFiles, mktFiles); err != nil {
 		return err
 	}
 
@@ -271,7 +280,7 @@ func Gp(dbPath, gpFileDir string, download bool) error {
 	return nil
 }
 
-func rebuildGpTablesFromFiles(db *sql.DB, gpFileDir string, stockFiles, blkFiles, mktFiles []string, download bool) error {
+func rebuildGpTablesFromFiles(db *sql.DB, gpFileDir string, stockFiles, blkFiles, mktFiles []string) error {
 	files := make([]string, 0, len(stockFiles)+len(blkFiles)+len(mktFiles))
 	files = append(files, stockFiles...)
 	files = append(files, blkFiles...)
@@ -338,11 +347,6 @@ func rebuildGpTablesFromFiles(db *sql.DB, gpFileDir string, stockFiles, blkFiles
 					}
 
 					targetPath := filepath.Join(gpFileDir, v)
-					if err := downloadFile(targetPath, v, GP_FILE_URL, download); err != nil {
-						setWorkerErr(err)
-						return
-					}
-
 					mkt, code, res := parseFileName(v)
 					recs, err := tdx.ParseGpDAT(targetPath, mkt, code)
 					if err != nil {
