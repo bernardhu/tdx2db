@@ -260,17 +260,18 @@ func dedupCwRecords(recs []tdx.CWRecord) ([]tdx.CWRecord, int) {
 	}
 
 	dupCount := 0
-	seen := make(map[cwKey]struct{}, len(recs))
+	seen := make(map[cwKey]*tdx.CWRecord, len(recs))
 	out := make([]tdx.CWRecord, 0, len(recs))
 
 	for i := len(recs) - 1; i >= 0; i-- {
 		r := recs[i]
 		key := cwKey{code: r.Code, report: r.ReportDate}
-		if _, ok := seen[key]; ok {
+		if val, ok := seen[key]; ok {
 			dupCount++
+			fmt.Print(formatCwRecordDiff(r, val))
 			continue
 		}
-		seen[key] = struct{}{}
+		seen[key] = &recs[i]
 		out = append(out, r)
 	}
 
@@ -279,6 +280,21 @@ func dedupCwRecords(recs []tdx.CWRecord) ([]tdx.CWRecord, int) {
 	}
 
 	return out, dupCount
+}
+
+func formatCwRecordDiff(rec tdx.CWRecord, old *tdx.CWRecord) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "dup cw code=%s report=%d announce=%d\n", rec.Code, rec.ReportDate, rec.AnnounceDate)
+
+	maxLen := len(old.Values)
+
+	for i := 0; i < maxLen; i++ {
+		if old.Values[i] != rec.Values[i] {
+			fmt.Fprintf(&b, "  %s[old:new]: %v -> %v\n", database.CwBaseDesc(i), old.Values[i], rec.Values[i])
+		}
+	}
+
+	return b.String()
 }
 
 func loadHashes(path string) (map[string]string, error) {
