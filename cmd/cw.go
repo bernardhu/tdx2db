@@ -195,6 +195,10 @@ func rebuildCwTableFromFiles(db *sql.DB, cwFileDir string, zipFiles []string) er
 						return
 					}
 
+					if deduped, dupCount := dedupCwRecords(recs); dupCount > 0 {
+						recs = deduped
+					}
+
 					if len(recs) > 0 {
 						select {
 						case batches <- database.CwRebuildBatch{Records: recs}:
@@ -247,6 +251,34 @@ func removeGlob(pattern string) error {
 		}
 	}
 	return nil
+}
+
+func dedupCwRecords(recs []tdx.CWRecord) ([]tdx.CWRecord, int) {
+	type cwKey struct {
+		code   string
+		report uint32
+	}
+
+	dupCount := 0
+	seen := make(map[cwKey]struct{}, len(recs))
+	out := make([]tdx.CWRecord, 0, len(recs))
+
+	for i := len(recs) - 1; i >= 0; i-- {
+		r := recs[i]
+		key := cwKey{code: r.Code, report: r.ReportDate}
+		if _, ok := seen[key]; ok {
+			dupCount++
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, r)
+	}
+
+	for i, j := 0, len(out)-1; i < j; i, j = i+1, j-1 {
+		out[i], out[j] = out[j], out[i]
+	}
+
+	return out, dupCount
 }
 
 func loadHashes(path string) (map[string]string, error) {
