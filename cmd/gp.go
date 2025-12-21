@@ -449,6 +449,10 @@ func unzip(zipPath, destDir string) error {
 		if errors.Is(err, exec.ErrNotFound) {
 			return utils.UnzipFile(zipPath, destDir)
 		}
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return nil
+		}
 		return err
 	}
 	return nil

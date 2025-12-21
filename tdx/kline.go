@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/jing2uo/tdx2db/model"
 )
@@ -22,6 +23,28 @@ type RowData struct {
 	Err  error
 }
 
+type DayKlineRecord struct {
+	Symbol string
+	Open   float64
+	High   float64
+	Low    float64
+	Close  float64
+	Amount float64
+	Volume int64
+	Date   time.Time
+}
+
+type MinKlineRecord struct {
+	Symbol   string
+	Open     float64
+	High     float64
+	Low      float64
+	Close    float64
+	Amount   float64
+	Volume   int64
+	Datetime time.Time
+}
+
 const (
 	// 定义写入CSV时批处理的大小，累积到这个数量再一次性写入文件
 	writeBatchSize = 16284
@@ -30,6 +53,156 @@ const (
 	// 每条记录的固定大小（字节）
 	recordSize = 32
 )
+
+type dayRowData struct {
+	Record DayKlineRecord
+	Err    error
+}
+
+type minRowData struct {
+	Record MinKlineRecord
+	Err    error
+}
+
+// StreamDayFiles 将通达信 .day 文件直接解析为结构化数据，并通过回调逐行消费。
+// 注意：回调在单个 goroutine 内串行调用，适合用 DuckDB Appender 等非并发写入方式。
+func StreamDayFiles(filePath string, validPrefixes []string, handle func(DayKlineRecord) error) error {
+	files, err := collectFiles(filePath, validPrefixes, ".day")
+	if err != nil {
+		return err
+	}
+
+	rowChan := make(chan dayRowData, 1024)
+	var producerWg sync.WaitGroup
+	var consumerWg sync.WaitGroup
+	sem := make(chan struct{}, maxConcurrency)
+
+	var errors []string
+	var errorMutex sync.Mutex
+	collectError := func(err error) {
+		errorMutex.Lock()
+		errors = append(errors, err.Error())
+		errorMutex.Unlock()
+	}
+
+	consumerWg.Add(1)
+	go func() {
+		defer consumerWg.Done()
+		for data := range rowChan {
+			if data.Err != nil {
+				collectError(data.Err)
+				continue
+			}
+			if err := handle(data.Record); err != nil {
+				collectError(err)
+			}
+		}
+	}()
+
+	for _, file := range files {
+		producerWg.Add(1)
+		sem <- struct{}{}
+		go func(filename string) {
+			defer func() {
+				<-sem
+				producerWg.Done()
+			}()
+
+			if err := scanRecords(filename, ".day", func(recordBytes []byte, symbol string) {
+				record, err := processDayRecordValue(recordBytes, symbol)
+				if err != nil {
+					rowChan <- dayRowData{Err: fmt.Errorf("failed to process record in %s: %w", filename, err)}
+					return
+				}
+				rowChan <- dayRowData{Record: record}
+			}); err != nil {
+				rowChan <- dayRowData{Err: err}
+			}
+		}(file)
+	}
+
+	producerWg.Wait()
+	close(rowChan)
+	consumerWg.Wait()
+
+	if len(errors) > 0 {
+		return fmt.Errorf("errors occurred during processing:\n%s", strings.Join(errors, "\n"))
+	}
+	return nil
+}
+
+// StreamMinFiles 将通达信 .01 或 .5 文件直接解析为结构化数据，并通过回调逐行消费。
+// 注意：回调在单个 goroutine 内串行调用，适合用 DuckDB Appender 等非并发写入方式。
+func StreamMinFiles(filePath string, validPrefixes []string, suffix string, handle func(MinKlineRecord) error) error {
+	switch suffix {
+	case ".01", ".5":
+	default:
+		return fmt.Errorf("unsupported file suffix: '%s'. Supported are .01, .5", suffix)
+	}
+
+	files, err := collectFiles(filePath, validPrefixes, suffix)
+	if err != nil {
+		return err
+	}
+
+	rowChan := make(chan minRowData, 1024)
+	var producerWg sync.WaitGroup
+	var consumerWg sync.WaitGroup
+	sem := make(chan struct{}, maxConcurrency)
+
+	var errors []string
+	var errorMutex sync.Mutex
+	collectError := func(err error) {
+		errorMutex.Lock()
+		errors = append(errors, err.Error())
+		errorMutex.Unlock()
+	}
+
+	consumerWg.Add(1)
+	go func() {
+		defer consumerWg.Done()
+		for data := range rowChan {
+			if data.Err != nil {
+				collectError(data.Err)
+				continue
+			}
+			if err := handle(data.Record); err != nil {
+				collectError(err)
+			}
+		}
+	}()
+
+	for _, file := range files {
+		producerWg.Add(1)
+		sem <- struct{}{}
+		go func(filename string) {
+			defer func() {
+				<-sem
+				producerWg.Done()
+			}()
+
+			if err := scanRecords(filename, suffix, func(recordBytes []byte, symbol string) {
+				record, err := processMinRecordValue(recordBytes, symbol)
+				if err != nil {
+					rowChan <- minRowData{Err: fmt.Errorf("failed to process record in %s: %w", filename, err)}
+					return
+				}
+				rowChan <- minRowData{Record: record}
+			}); err != nil {
+				rowChan <- minRowData{Err: err}
+			}
+		}(file)
+	}
+
+	producerWg.Wait()
+	close(rowChan)
+	consumerWg.Wait()
+
+	if len(errors) > 0 {
+		return fmt.Errorf("errors occurred during processing:\n%s", strings.Join(errors, "\n"))
+	}
+	return nil
+}
 
 // 将通达信的 .day, .01, 或 .5 文件转换为CSV文件。
 func ConvertFiles2Csv(filePath string, validPrefixes []string, outputCSV string, suffix string) (string, error) {
@@ -160,51 +333,84 @@ func collectFiles(filePath string, validPrefixes []string, suffix string) ([]str
 	return files, nil
 }
 
-// processAndProduce 读取单个文件，使用指定的处理器函数解析记录，并将结果发送到channel。
-func processAndProduce(filename, suffix string, rowChan chan<- RowData, processor func([]byte, string) (string, error)) {
+func scanRecords(filename, suffix string, handle func(recordBytes []byte, symbol string)) error {
 	fileInfo, err := os.Stat(filename)
 	if err != nil {
-		rowChan <- RowData{Err: fmt.Errorf("could not stat file %s: %w", filename, err)}
-		return
+		return fmt.Errorf("could not stat file %s: %w", filename, err)
 	}
 	if fileInfo.Size() == 0 {
-		return // 静默跳过空文件
+		return nil // 静默跳过空文件
 	}
 
 	inFile, err := os.Open(filename)
 	if err != nil {
-		rowChan <- RowData{Err: fmt.Errorf("failed to open file %s: %w", filename, err)}
-		return
+		return fmt.Errorf("failed to open file %s: %w", filename, err)
 	}
 	defer inFile.Close()
 
 	symbol := strings.TrimSuffix(filepath.Base(filename), suffix)
 	buffer := make([]byte, readBufferSize)
+	var carry [recordSize]byte
+	carryLen := 0
 
 	for {
-		n, err := inFile.Read(buffer)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			rowChan <- RowData{Err: fmt.Errorf("failed to read file %s: %w", filename, err)}
-			return
-		}
-		if n%recordSize != 0 {
-			rowChan <- RowData{Err: fmt.Errorf("invalid file format in %s: data length %d is not a multiple of %d", filename, n, recordSize)}
-			return
+		n, readErr := inFile.Read(buffer)
+		if n > 0 {
+			data := buffer[:n]
+
+			if carryLen > 0 {
+				need := recordSize - carryLen
+				if len(data) < need {
+					copy(carry[carryLen:], data)
+					carryLen += len(data)
+				} else {
+					copy(carry[carryLen:], data[:need])
+					handle(carry[:], symbol)
+					data = data[need:]
+					carryLen = 0
+				}
+			}
+
+			if carryLen == 0 {
+				fullRecords := len(data) / recordSize
+				for i := 0; i < fullRecords; i++ {
+					start := i * recordSize
+					handle(data[start:start+recordSize], symbol)
+				}
+
+				rem := len(data) % recordSize
+				if rem > 0 {
+					copy(carry[:], data[len(data)-rem:])
+					carryLen = rem
+				}
+			}
 		}
 
-		for i := 0; i < n/recordSize; i++ {
-			recordBytes := buffer[i*recordSize : (i+1)*recordSize]
-			csvLine, err := processor(recordBytes, symbol)
-			if err != nil {
-				// 发送错误，但继续处理文件中的其他记录
-				rowChan <- RowData{Err: fmt.Errorf("failed to process record in %s: %w", filename, err)}
-				continue
-			}
-			rowChan <- RowData{Line: csvLine}
+		if readErr == io.EOF {
+			break
 		}
+		if readErr != nil {
+			return fmt.Errorf("failed to read file %s: %w", filename, readErr)
+		}
+	}
+
+	if carryLen != 0 {
+		return fmt.Errorf("invalid file format in %s: trailing bytes %d is not a multiple of %d", filename, carryLen, recordSize)
+	}
+	return nil
+}
+
+// processAndProduce 读取单个文件，使用指定的处理器函数解析记录，并将结果发送到channel。
+func processAndProduce(filename, suffix string, rowChan chan<- RowData, processor func([]byte, string) (string, error)) {
+	if err := scanRecords(filename, suffix, func(recordBytes []byte, symbol string) {
+		csvLine, err := processor(recordBytes, symbol)
+		if err != nil {
+			rowChan <- RowData{Err: fmt.Errorf("failed to process record in %s: %w", filename, err)}
+			return
+		}
+		rowChan <- RowData{Line: csvLine}
+	}); err != nil {
+		rowChan <- RowData{Err: err}
 	}
 }
 
@@ -217,6 +423,28 @@ func writeBatchToFile(file *os.File, batch []string) error {
 }
 
 // --- 特定记录处理函数 ---
+
+func processDayRecordValue(data []byte, symbol string) (DayKlineRecord, error) {
+	var record model.DayfileRecord
+	if err := binary.Read(bytes.NewReader(data), binary.LittleEndian, &record); err != nil {
+		return DayKlineRecord{}, fmt.Errorf("binary read failed: %w", err)
+	}
+	date, err := parseDate(record.Date)
+	if err != nil {
+		return DayKlineRecord{}, err
+	}
+
+	return DayKlineRecord{
+		Symbol: symbol,
+		Open:   float64(record.Open) / 100,
+		High:   float64(record.High) / 100,
+		Low:    float64(record.Low) / 100,
+		Close:  float64(record.Close) / 100,
+		Amount: float64(record.Amount),
+		Volume: int64(record.Volume),
+		Date:   date,
+	}, nil
+}
 
 func processDayRecord(data []byte, symbol string) (string, error) {
 	var record model.DayfileRecord
@@ -236,6 +464,27 @@ func processDayRecord(data []byte, symbol string) (string, error) {
 		record.Amount,
 		record.Volume,
 		dateStr), nil
+}
+
+func processMinRecordValue(data []byte, symbol string) (MinKlineRecord, error) {
+	var record model.MinfileRecord
+	if err := binary.Read(bytes.NewReader(data), binary.LittleEndian, &record); err != nil {
+		return MinKlineRecord{}, fmt.Errorf("binary read failed: %w", err)
+	}
+	dateTime, err := parseDateTime(record.DateRaw, record.TimeRaw)
+	if err != nil {
+		return MinKlineRecord{}, err
+	}
+	return MinKlineRecord{
+		Symbol:   symbol,
+		Open:     float64(record.Open) / 100,
+		High:     float64(record.High) / 100,
+		Low:      float64(record.Low) / 100,
+		Close:    float64(record.Close) / 100,
+		Amount:   float64(record.Amount),
+		Volume:   int64(record.Volume),
+		Datetime: dateTime,
+	}, nil
 }
 
 func processMinRecord(data []byte, symbol string) (string, error) {
@@ -280,4 +529,28 @@ func formatDateTime(dateRaw, timeRaw uint16) (string, error) {
 		return "", fmt.Errorf("invalid time value from raw: %d", timeRaw)
 	}
 	return fmt.Sprintf("%04d-%02d-%02d %02d:%02d", year, month, day, hour, minute), nil
+}
+
+func parseDate(date uint32) (time.Time, error) {
+	d := int(date)
+	year, month, day := d/10000, (d%10000)/100, d%100
+	if year < 1990 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31 {
+		return time.Time{}, fmt.Errorf("invalid date value: %08d", date)
+	}
+	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC), nil
+}
+
+func parseDateTime(dateRaw, timeRaw uint16) (time.Time, error) {
+	year := int(dateRaw)/2048 + 2004
+	month := (int(dateRaw) % 2048) / 100
+	day := (int(dateRaw) % 2048) % 100
+	hour := int(timeRaw) / 60
+	minute := int(timeRaw) % 60
+	if year < 1990 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31 {
+		return time.Time{}, fmt.Errorf("invalid date value from raw: %d", dateRaw)
+	}
+	if hour < 0 || hour > 23 || minute < 0 || minute > 59 {
+		return time.Time{}, fmt.Errorf("invalid time value from raw: %d", timeRaw)
+	}
+	return time.Date(year, time.Month(month), day, hour, minute, 0, 0, time.UTC), nil
 }

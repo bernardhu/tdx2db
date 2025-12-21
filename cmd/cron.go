@@ -81,13 +81,9 @@ func UpdateStocksDaily(db *sql.DB, latestDate, max time.Time) error {
 		return fmt.Errorf("failed to prepare tdx data: %w", err)
 	}
 	if len(validDates) > 0 {
-		fmt.Printf("🐢 开始转换日线数据\n")
-		_, err := tdx.ConvertFiles2Csv(VipdocDir2, ValidPrefixes, StockCSV, ".day")
-		if err != nil {
-			return fmt.Errorf("failed to convert day files to CSV: %w", err)
-		}
-		if err := database.ImportStockCsv(db, StockCSV); err != nil {
-			return fmt.Errorf("failed to import stock CSV: %w", err)
+		fmt.Printf("🐢 开始导入日线数据 (drop + append)\n")
+		if err := database.ImportStockDayFiles(db, VipdocDir2, ValidPrefixes); err != nil {
+			return fmt.Errorf("failed to import stock day files: %w", err)
 		}
 		fmt.Println("📊 日线数据导入成功")
 	} else {
@@ -111,22 +107,14 @@ func UpdateStocksMinLine(db *sql.DB, latestDate, max time.Time, minline string) 
 		for _, p := range parts {
 			switch p {
 			case "1":
-				_, err := tdx.ConvertFiles2Csv(VipdocDir2, ValidPrefixes, OneMinLineCSV, ".01")
-				if err != nil {
-					return fmt.Errorf("failed to convert .01 files to CSV: %w", err)
-				}
-				if err := database.Import1MinLineCsv(db, OneMinLineCSV); err != nil {
-					return fmt.Errorf("failed to import 1-minute line CSV: %w", err)
+				if err := database.Import1MinLineFiles(db, VipdocDir2, ValidPrefixes); err != nil {
+					return fmt.Errorf("failed to import 1-minute line files: %w", err)
 				}
 				fmt.Println("📊 1分钟数据导入成功")
 
 			case "5":
-				_, err := tdx.ConvertFiles2Csv(VipdocDir2, ValidPrefixes, FiveMinLineCSV, ".5")
-				if err != nil {
-					return fmt.Errorf("failed to convert .5 files to CSV: %w", err)
-				}
-				if err := database.Import5MinLineCsv(db, FiveMinLineCSV); err != nil {
-					return fmt.Errorf("failed to import 5-minute line CSV: %w", err)
+				if err := database.Import5MinLineFiles(db, VipdocDir2, ValidPrefixes); err != nil {
+					return fmt.Errorf("failed to import 5-minute line files: %w", err)
 				}
 				fmt.Println("📊 5分钟数据导入成功")
 			}

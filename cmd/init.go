@@ -6,10 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	_ "github.com/duckdb/duckdb-go/v2"
 	"github.com/jing2uo/tdx2db/database"
 	"github.com/jing2uo/tdx2db/model"
-	"github.com/jing2uo/tdx2db/tdx"
 	"github.com/jing2uo/tdx2db/utils"
 )
 
@@ -36,8 +34,8 @@ func Init(dbPath, dayFileDir string) error {
 		return err
 	}
 
-	if err := unzip(zipPath, zipPath); err != nil {
-		return fmt.Errorf("failed to unzip file %s: %w", zipPath, err)
+	if err := unzip(zipPath, dayFileDir); err != nil {
+		return fmt.Errorf("failed to unzip file %s: %v.", zipPath, err)
 	}
 
 	rmdir(zipPath)
@@ -47,13 +45,6 @@ func Init(dbPath, dayFileDir string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("🐢 开始转换日线数据")
-	_, err = tdx.ConvertFiles2Csv(dayFileDir, ValidPrefixes, StockCSV, ".day")
-	if err != nil {
-		return fmt.Errorf("failed to convert day files to CSV: %w", err)
-	}
-
-	fmt.Println("🔥 转换完成")
 
 	dbConfig := model.DBConfig{Path: dbPath}
 	db, err := database.Connect(dbConfig)
@@ -62,9 +53,31 @@ func Init(dbPath, dayFileDir string) error {
 	}
 	defer db.Close()
 
-	if err := database.ImportStockCsv(db, StockCSV); err != nil {
-		return fmt.Errorf("failed to import stock CSV: %w", err)
+	fmt.Println("🐢 开始导入日线数据 (drop + append)")
+	if err := database.ImportStockDayFiles(db, dayFileDir, ValidPrefixes); err != nil {
+		return fmt.Errorf("failed to import stock day files: %w", err)
 	}
 	fmt.Println("🚀 股票数据导入成功")
+
+	err = UpdateGbbq(db)
+	if err != nil {
+		return fmt.Errorf("failed to update GBBQ: %w", err)
+	}
+
+	err = UpdateFactors(db)
+	if err != nil {
+		return fmt.Errorf("failed to calculate factors: %w", err)
+	}
+
+	fmt.Printf("🔄 更新前复权数据视图 (%s)\n", database.QfqViewName)
+	if err := database.CreateQfqView(db); err != nil {
+		return fmt.Errorf("failed to create qfq view: %w", err)
+	}
+
+	fmt.Printf("🔄 更新后复权数据视图 (%s)\n", database.HfqViewName)
+	if err := database.CreateHfqView(db); err != nil {
+		return fmt.Errorf("failed to create hfq view: %w", err)
+	}
+
 	return nil
 }

@@ -21,6 +21,7 @@ var StocksSchema = TableSchema{
 		"volume BIGINT",
 		"date DATE",
 	},
+	Keys: []string{"PRIMARY KEY (symbol, date)"},
 }
 
 var QfqViewName = "v_qfq_stocks"
