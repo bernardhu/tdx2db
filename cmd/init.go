@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 
 	_ "github.com/duckdb/duckdb-go/v2"
 	"github.com/jing2uo/tdx2db/database"
@@ -10,11 +13,34 @@ import (
 	"github.com/jing2uo/tdx2db/utils"
 )
 
-func Init(dbPath, dayFileDir string) error {
+func rmdir(path string) {
+	cmd := exec.Command("rm", "-rf", path)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("⚠️ 删除目录%s失败\n", path)
+	}
+}
+
+func Init(dbPath, dayFileDir string) error {
 	if dbPath == "" {
 		return fmt.Errorf("database path cannot be empty")
 	}
+
+	rmdir(dayFileDir + "/bj")
+	rmdir(dayFileDir + "/sh")
+	rmdir(dayFileDir + "/sz")
+	zipPath := filepath.Join(dayFileDir, "hsjday.zip")
+	if err := downloadFile(zipPath, "hsjday.zip", CW_ALL_URL, true); err != nil {
+		return err
+	}
+
+	if err := unzip(zipPath, zipPath); err != nil {
+		return fmt.Errorf("failed to unzip file %s: %w", zipPath, err)
+	}
+
+	rmdir(zipPath)
 
 	fmt.Printf("📦 开始处理日线目录: %s\n", dayFileDir)
 	err := utils.CheckDirectory(dayFileDir)
