@@ -1,6 +1,5 @@
 Year="2025"
 list=`date "+%m%d"`
-list="1219"
 
 
 
@@ -38,9 +37,9 @@ rm -rf ./datatool/vipdoc/refmhq/*
 #docker run -it -v $CUR/datatool:/datatool -w /datatool alpine:3.19 ./datatool tick create $Year$i
 #docker run -it -v $CUR/datatool:/datatool -w /datatool alpine:3.19 ./datatool min create $Year$i
 
-./tdx2db cw --cwpath datatool/vipdoc/tdxfin --cwdl false --dbpath tdx.db
+./tdx2db cw --cwpath datatool/vipdoc/tdxfin --cwdl true --dbpath tdx.db
 ./tdx2db base --basepath datatool/vipdoc/base --dbpath tdx.db 
-./tdx2db gp --gppath datatool/vipdoc/tdxgp --gpdl false --dbpath tdx.db 
+./tdx2db gp --gppath datatool/vipdoc/tdxgp --gpdl true --dbpath tdx.db 
 else
     echo  $SYSTEM
 fi

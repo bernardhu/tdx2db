@@ -5,14 +5,17 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"time"
 
 	"github.com/duckdb/duckdb-go/v2"
 	"github.com/jing2uo/tdx2db/tdx"
 )
 
-func ImportStockDayFiles(db *sql.DB, dayFileDir string, validPrefixes []string) error {
-	if err := DropTable(db, StocksSchema); err != nil {
-		return fmt.Errorf("failed to drop table: %w", err)
+func ImportStockDayFiles(db *sql.DB, dayFileDir string, validPrefixes []string, drop bool, latestDate map[string]time.Time) error {
+	if drop {
+		if err := DropTable(db, StocksSchema); err != nil {
+			return fmt.Errorf("failed to drop table: %w", err)
+		}
 	}
 	if err := CreateTable(db, StocksSchema); err != nil {
 		return fmt.Errorf("failed to create table: %w", err)
@@ -45,15 +48,19 @@ func ImportStockDayFiles(db *sql.DB, dayFileDir string, validPrefixes []string) 
 
 		rowValues := make([]driver.Value, 8)
 		if err := tdx.StreamDayFiles(dayFileDir, validPrefixes, func(record tdx.DayKlineRecord) error {
-			rowValues[0] = record.Symbol
-			rowValues[1] = record.Open
-			rowValues[2] = record.High
-			rowValues[3] = record.Low
-			rowValues[4] = record.Close
-			rowValues[5] = record.Amount
-			rowValues[6] = record.Volume
-			rowValues[7] = record.Date
-			return appender.AppendRow(rowValues...)
+			if record.Date.After(latestDate[record.Symbol]) {
+				fmt.Printf("symbol:%s date:%v rdate:%v\n", record.Symbol, latestDate[record.Symbol], record.Date)
+				rowValues[0] = record.Symbol
+				rowValues[1] = record.Open
+				rowValues[2] = record.High
+				rowValues[3] = record.Low
+				rowValues[4] = record.Close
+				rowValues[5] = record.Amount
+				rowValues[6] = record.Volume
+				rowValues[7] = record.Date
+				return appender.AppendRow(rowValues...)
+			}
+			return nil
 		}); err != nil {
 			return fmt.Errorf("stream day files: %w", err)
 		}
@@ -137,4 +144,3 @@ func importMinLineFiles(db *sql.DB, schema TableSchema, fileDir string, validPre
 
 	return nil
 }
-

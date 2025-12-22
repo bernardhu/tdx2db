@@ -54,7 +54,7 @@ func Init(dbPath, dayFileDir string) error {
 	defer db.Close()
 
 	fmt.Println("🐢 开始导入日线数据 (drop + append)")
-	if err := database.ImportStockDayFiles(db, dayFileDir, ValidPrefixes); err != nil {
+	if err := database.ImportStockDayFiles(db, dayFileDir, ValidPrefixes, true, nil); err != nil {
 		return fmt.Errorf("failed to import stock day files: %w", err)
 	}
 	fmt.Println("🚀 股票数据导入成功")

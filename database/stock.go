@@ -162,6 +162,30 @@ func QueryAllSymbols(db *sql.DB) ([]string, error) {
 	return symbols, nil
 }
 
+func GetStockLatestDate(db *sql.DB) (map[string]time.Time, error) {
+	query := fmt.Sprintf("SELECT symbol, MAX(date) AS latest_date FROM %s GROUP BY symbol", StocksSchema.Name)
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query latest stock dates: %w", err)
+	}
+	defer rows.Close()
+
+	res := make(map[string]time.Time, 4096)
+	for rows.Next() {
+		var symbol string
+		var latestDate time.Time
+		if err := rows.Scan(&symbol, &latestDate); err != nil {
+			return nil, fmt.Errorf("failed to scan latest stock date: %w", err)
+		}
+		res[symbol] = latestDate
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating latest stock dates: %w", err)
+	}
+
+	return res, nil
+}
+
 func GetStockTableLatestDate(db *sql.DB) (time.Time, error) {
 	date, err := GetLatestDateFromTable(db, StocksSchema.Name)
 	if err != nil {
