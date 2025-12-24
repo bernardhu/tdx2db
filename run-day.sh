@@ -29,7 +29,7 @@ cd ./datatool/vipdoc/refmhq && wget https://www.tdx.com.cn/products/data/data/g4
 cd ../../..
 docker run -it -v $CUR/datatool:/datatool -w /datatool alpine:3.19 ./datatool day create $Year$i
 rm -rf ./datatool/vipdoc/refmhq/*
-./tdx2db  cron --dbpath tdx.db --maxday $Year$i
+./tdx2db  cron --dbpath tdx.db
 
 #mkdir -p ./datatool/vipdoc/newdatetick
 #cd ./datatool/vipdoc/newdatetick && wget https://www.tdx.com.cn/products/data/data/g4tic/$Year$i.zip && unzip $Year$i.zip && rm -rf $Year$i.zip
@@ -40,6 +40,8 @@ rm -rf ./datatool/vipdoc/refmhq/*
 ./tdx2db cw --cwpath datatool/vipdoc/tdxfin --cwdl true --dbpath tdx.db
 ./tdx2db base --basepath datatool/vipdoc/base --dbpath tdx.db 
 ./tdx2db gp --gppath datatool/vipdoc/tdxgp --gpdl true --dbpath tdx.db 
+
+cp /Volumes/zd_gfzq_new/T0002/hq_cache/*.tnf datatool/vipdoc/base
 else
     echo  $SYSTEM
 fi

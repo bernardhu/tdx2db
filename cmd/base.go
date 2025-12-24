@@ -169,5 +169,10 @@ func Base(dbPath, baseFileDir string) error {
 		fmt.Printf("❌ 导入退市数据%s 失败 %v\n", delistPath, err)
 	}
 
+	//------------------tnf file------------------
+	tdx.ReadTnfRecords(baseFileDir, func(*tdx.StockRecord, string) {
+
+	})
+
 	return nil
 }
